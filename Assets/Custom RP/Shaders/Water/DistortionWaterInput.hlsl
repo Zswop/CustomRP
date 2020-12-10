@@ -3,16 +3,21 @@
 
 #include "../Surface.hlsl"
 
-TEXTURE2D(_BaseMap);
-TEXTURE2D(_FlowMap);
-TEXTURE2D(_DerivHeightMap);
-SAMPLER(sampler_BaseMap);
+TEXTURE2D(_BaseMap); SAMPLER(sampler_BaseMap);
+TEXTURE2D(_FlowMap); SAMPLER(sampler_FlowMap);
+TEXTURE2D(_DerivHeightMap); SAMPLER(sampler_DerivHeightMap);
+TEXTURE2D(_CameraDepthTexture); SAMPLER(sampler_CameraDepthTexture);
+TEXTURE2D(_CameraOpaqueTexture);SAMPLER(sampler_CameraOpaqueTexture);
 
 CBUFFER_START(UnityPerMaterial)
 	float4 _BaseMap_ST;
 	float4 _BaseColor;
 	float _Metallic;
 	float _Smoothness;
+
+	float3 _WaterFogColor;
+	float _WaterFogDensity;
+	float _RefractionStrength;
 
 	float _UJump;
 	float _VJump;
@@ -44,7 +49,7 @@ float GetCutoff(float2 baseUV) {
 ////////////////////////////////////////////////
 
 float3 GetDerivativeHeight (float2 uv) {
-	float3 dh = SAMPLE_TEXTURE2D(_DerivHeightMap, sampler_BaseMap, uv).agb;
+	float3 dh = SAMPLE_TEXTURE2D(_DerivHeightMap, sampler_DerivHeightMap, uv).agb;
 	dh.xy = dh.xy * 2 - 1;
 	return dh;
 }
@@ -54,7 +59,7 @@ inline void InitializeWaterWaveData(float3 p, out WaveData waveData) {
 }
 
 inline float4 GetFlowBase(float2 uv, out float3 normal){
-	float4 flow = SAMPLE_TEXTURE2D(_FlowMap, sampler_BaseMap, uv);
+	float4 flow = SAMPLE_TEXTURE2D(_FlowMap, sampler_FlowMap, uv);
 	flow.xy = flow.xy * 2 - 1.0;
 	flow.xyz *= _FlowStrength;
 

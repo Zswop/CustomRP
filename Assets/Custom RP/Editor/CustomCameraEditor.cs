@@ -1,4 +1,7 @@
-﻿using UnityEngine;
+﻿//Writing by Jiayun Li
+//Copyright (c) 2020
+
+using UnityEngine;
 using UnityEditor;
 
 namespace OpenCS
@@ -9,6 +12,7 @@ namespace OpenCS
     {
         public override void OnInspectorGUI()
         {
+            base.OnInspectorGUI();
         }
     }
 
@@ -45,11 +49,11 @@ namespace OpenCS
             Init(additionalCameraData);
         }
 
-        public override void OnInspectorGUI()
-        {
-            base.OnInspectorGUI();
-            DrawPostProcessing();
-        }
+        //public override void OnInspectorGUI()
+        //{
+        //    base.OnInspectorGUI();
+        //    DrawPostProcessing();
+        //}
 
         void DrawPostProcessing()
         {

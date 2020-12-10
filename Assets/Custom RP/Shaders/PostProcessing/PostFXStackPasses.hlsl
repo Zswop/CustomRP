@@ -28,9 +28,6 @@ TEXTURE2D(_PostFXSource);
 TEXTURE2D(_PostFXSourceLowMip);
 SAMPLER(sampler_linear_clamp);
 
-TEXTURE2D(_DepthTex);
-SAMPLER(sampler_DepthTex);
-
 float4 _PostFXSource_TexelSize;
 float4 _PostFXSourceLowMip_TexelSize;
 float4 _BloomThreshold;
@@ -42,23 +39,6 @@ float4 GetSourceTexelSize() {
 
 half4 GetSource(float2 fxUV) {
 	return SAMPLE_TEXTURE2D(_PostFXSource, sampler_linear_clamp, fxUV);
-}
-
-half4 DepthStripesPassFragment(Varyings input) : SV_TARGET {
-	float rawDepth = SAMPLE_DEPTH_TEXTURE(_DepthTex, sampler_DepthTex, input.fxUV);	
-	half4 color = GetSource(input.fxUV);
-
-	#if UNITY_REVERSED_Z
-		bool hasDepth = rawDepth != 0;
-	#else
-		bool hasDepth = rawDepth != 1;
-	#endif
-
-	if (hasDepth) {
-		float depth = LinearEyeDepth(rawDepth, _ZBufferParams);
-		color *= pow(sin(3.14 * depth), 2.0);
-	}
-	return color;
 }
 
 half4 BlurPassFragment(Varyings input) : SV_TARGET {

@@ -16,11 +16,13 @@ namespace OpenCS
         public CameraType cameraType;
         public float renderScale;
         public float maxShadowDistance;
+        public Rect pixelRect;
 
         public bool isHdrEnabled;
         public bool postProcessEnabled;
         public bool requireDepthTexture;
         public bool requireOpaqueTexture;
+        public int renderingLayerMask;
 
         public bool isSceneViewCamera { get { return cameraType == CameraType.SceneView; } }
         public bool isPreviewCamera { get { return cameraType == CameraType.Preview; } }
@@ -43,14 +45,16 @@ namespace OpenCS
     {
         public static RenderTextureDescriptor CreateRenderTextureDescriptor(Camera camera, float renderScale,
             bool isHdrEnabled, int msaaSamples, bool needsAlpha)
-        {
+        {            
             RenderTextureDescriptor desc;
             RenderTextureFormat renderTextureFormatDefault = RenderTextureFormat.Default;
             desc = new RenderTextureDescriptor(camera.pixelWidth, camera.pixelHeight);
             desc.width = (int)((float)desc.width * renderScale);
             desc.height = (int)((float)desc.height * renderScale);
 
+            UnityEngine.Profiling.Profiler.BeginSample("SupportsRenderTextureFormat");
             bool use32BitHDR = !needsAlpha && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGB111110Float);
+            UnityEngine.Profiling.Profiler.EndSample();
             RenderTextureFormat hdrFormat = (use32BitHDR) ? RenderTextureFormat.RGB111110Float : RenderTextureFormat.DefaultHDR;
             if (camera.targetTexture != null)
             {
@@ -66,10 +70,9 @@ namespace OpenCS
                 desc.msaaSamples = msaaSamples;
                 desc.sRGB = (QualitySettings.activeColorSpace == ColorSpace.Linear);
             }
-
             desc.enableRandomWrite = false;
             desc.bindMS = false;
-            desc.useDynamicScale = camera.allowDynamicResolution;
+            desc.useDynamicScale = camera.allowDynamicResolution;            
             return desc;
         }
 
@@ -92,18 +95,48 @@ namespace OpenCS
 
             return drawingSettings;
         }
-
+       
         static int bitTexId = Shader.PropertyToID("_BlitTex");
 
-        public static void BlitProcedural(CommandBuffer buffer, int from, int to, Material material = null, int pass = 0)
+        public static void BlitProcedural(CommandBuffer buffer, RenderTargetIdentifier from, RenderTargetIdentifier to, Material material = null, int pass = 0)
         {
             buffer.SetGlobalTexture(bitTexId, from);
-            if (to != -1) { buffer.SetRenderTarget(to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store); }
-            else { buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare, 
-                RenderBufferStoreAction.Store); }
+            buffer.SetRenderTarget(to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            Material blitMat = material != null ? material : CustomRenderPipeline.asset.BlitMaterial;            
+            buffer.DrawProcedural(Matrix4x4.identity, blitMat, pass, MeshTopology.Triangles, 3);
+        }
 
-            if (material != null) { buffer.DrawProcedural(Matrix4x4.identity, material, pass, MeshTopology.Triangles, 3); }
-            else { buffer.DrawProcedural(Matrix4x4.identity, CustomRenderPipeline.asset.BlitMaterial, 0, MeshTopology.Triangles, 3); }
+        public static void FinalBlitProcedural(CommandBuffer buffer, RenderTargetIdentifier from, RenderTargetIdentifier to,
+            Rect pixelRect, Material material = null, int pass = 0)
+        {
+            buffer.SetGlobalTexture(bitTexId, from);
+            buffer.SetRenderTarget(to, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
+            buffer.SetViewport(pixelRect);
+            Material blitMat = material != null ? material : CustomRenderPipeline.asset.BlitMaterial;
+            buffer.DrawProcedural(Matrix4x4.identity, blitMat, pass, MeshTopology.Triangles, 3);
+        }
+
+        public static void ClearRenderTarget(CommandBuffer cmd, ClearFlag clearFlag, Color clearColor)
+        {
+            if (clearFlag != ClearFlag.None)
+                cmd.ClearRenderTarget((clearFlag & ClearFlag.Depth) != 0, (clearFlag & ClearFlag.Color) != 0, clearColor);
+        }
+
+        public static void SetRenderTarget(CommandBuffer cmd,
+            RenderTargetIdentifier colorBuffer, RenderBufferLoadAction colorLoadAction, RenderBufferStoreAction colorStoreAction,
+            ClearFlag clearFlag, Color clearColor)
+        {
+            cmd.SetRenderTarget(colorBuffer, colorLoadAction, colorStoreAction);
+            ClearRenderTarget(cmd, clearFlag, clearColor);
+        }
+
+        public static void SetRenderTarget(CommandBuffer cmd,
+            RenderTargetIdentifier colorBuffer, RenderBufferLoadAction colorLoadAction, RenderBufferStoreAction colorStoreAction,
+            RenderTargetIdentifier depthBuffer, RenderBufferLoadAction depthLoadAction, RenderBufferStoreAction depthStoreAction,
+            ClearFlag clearFlag, Color clearColor)
+        {
+            cmd.SetRenderTarget(colorBuffer, colorLoadAction, colorStoreAction, depthBuffer, depthLoadAction, depthStoreAction);
+            ClearRenderTarget(cmd, clearFlag, clearColor);
         }
     }
 }

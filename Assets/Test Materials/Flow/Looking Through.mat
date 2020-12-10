@@ -9,7 +9,7 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Looking Through
   m_Shader: {fileID: 4800000, guid: 54aa0ba787653234880e89b0937f5c48, type: 3}
-  m_ShaderKeywords: _NORMAL_MAP
+  m_ShaderKeywords: _NORMAL_MAP _PREMULTIPLY_ALPHA
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -89,24 +89,27 @@ Material:
     - _NormalMapToggle: 1
     - _OcclusionStrength: 1
     - _Parallax: 0.02
-    - _PremulAlpha: 0
+    - _PremulAlpha: 1
     - _ReceiveShadows: 0
+    - _RefractionStrength: 0.25
     - _Smoothness: 0.7
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _Speed: 0.5
-    - _SrcBlend: 5
+    - _SrcBlend: 1
     - _Tiling: 3
     - _UJump: 0.24
     - _UVSec: 0
     - _VJump: 0.20833333
+    - _WaterFogDensity: 0.15
     - _WaveToggle: 0
     - _ZWrite: 0
     m_Colors:
-    - _BaseColor: {r: 0.30588228, g: 0.5137253, b: 0.6627451, a: 0.43137255}
+    - _BaseColor: {r: 0.30588207, g: 0.513725, b: 0.6627451, a: 0.5254902}
     - _Color: {r: 0.3065528, g: 0.5147804, b: 0.66176474, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _UVJump: {r: 0, g: 0, b: 0, a: 0}
+    - _WaterFogColor: {r: 0.3058823, g: 0.51372534, b: 0.6627451, a: 1}
     - _WaveA: {r: 1, g: 0, b: 0.5, a: 10}
     - _WaveB: {r: 0, g: 1, b: 0.25, a: 20}
     - _WaveC: {r: 1, g: 1, b: 0.15, a: 10}

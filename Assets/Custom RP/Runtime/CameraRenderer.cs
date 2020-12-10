@@ -34,15 +34,16 @@ namespace OpenCS
 
         bool createColorTexture = false;
         bool createDepthTexture = false;
+
         bool requireDepthOnlyPass = false;
         bool requireColorGradingLut = false;
         bool copyOpaqueColor = false;
 
-        public void Render(ScriptableRenderContext context, ref RenderingData renderingDta)
+        public void Render(ScriptableRenderContext context, ref RenderingData renderingData)
         {
             this.context = context;
 
-            ref var cameraData = ref renderingDta.cameraData;
+            ref var cameraData = ref renderingData.cameraData;
             this.camera = cameraData.camera;
 
             PrepareBuffer();
@@ -54,20 +55,20 @@ namespace OpenCS
 
             buffer.BeginSample(SampleName);
             ExecuteBuffer();
-            lighting.Setup(context, ref cullingResults, ref renderingDta);
-            postFXStack.Setup(context, ref cameraData, renderingDta.postFXSettings, 
-                renderingDta.colorLUTResolution);
+            lighting.Setup(context, ref cullingResults, ref renderingData);
+            postFXStack.Setup(ref cameraData, renderingData.postFXSettings,
+                renderingData.colorLUTResolution);
 
-            SetupDepthPrepare(context, ref cullingResults, ref renderingDta);
-            SetupColorGradingLut(context, ref renderingDta);
+            SetupDepthPrepare(context, ref cullingResults, ref renderingData);
+            SetupColorGradingLut(context, ref renderingData);
             buffer.EndSample(SampleName);
 
-            Setup(ref renderingDta);
-            DrawVisibleGeometry(ref renderingDta);
+            Setup(ref renderingData);
+            DrawVisibleGeometry(ref renderingData);
             DrawUnsupportedShaders();
             DrawGizmosBeforeFX();
             if (postFXStack.IsActive){
-                postFXStack.Render(cameraColorAttachmentId, cameraDepthAttachmentId);
+                postFXStack.Render(context, cameraColorAttachmentId);
             }
             DrawGizmosAfterFX();
             Cleanup();
@@ -78,6 +79,8 @@ namespace OpenCS
         {
             if (camera.TryGetCullingParameters(out ScriptableCullingParameters p))
             {
+                bool isShadowDistanceZero = Mathf.Approximately(maxShadowDistance, 0.0f);
+                if (isShadowDistanceZero) { p.cullingOptions &= ~CullingOptions.ShadowCasters; }
                 p.shadowDistance = maxShadowDistance;
                 cullingResults = context.Cull(ref p);
                 return true;
@@ -92,6 +95,10 @@ namespace OpenCS
             int msaaSamples = cameraData.cameraTargetDescriptor.msaaSamples;
             var requiresDepthTexture = cameraData.requireDepthTexture;
             requireDepthOnlyPass = requiresDepthTexture && msaaSamples > 1;
+            // - Scene or preview cameras always require camera target depth.
+            // We do a depth pre-pass to simplify it and it shouldn't matter much for editor.
+            requireDepthOnlyPass |= cameraData.isSceneViewCamera;
+            requireDepthOnlyPass |= cameraData.isPreviewCamera;
             if (requireDepthOnlyPass) {
                 depthPrepare.Setup(context, ref cullingResults, ref renderingData, cameraDepthTextureId);
             }
@@ -109,12 +116,9 @@ namespace OpenCS
 
         void Setup(ref RenderingData renderingData)
         {
-            context.SetupCameraProperties(camera);
-            CameraClearFlags flags = camera.clearFlags;
-
             ref var cameraData = ref renderingData.cameraData;
-            copyOpaqueColor = cameraData.requireOpaqueTexture;
-
+            context.SetupCameraProperties(camera);
+            
             createColorTexture = cameraData.requireOpaqueTexture;
             createColorTexture |= cameraData.renderScale != 1.0f;
             createColorTexture |= postFXStack.IsActive;
@@ -123,19 +127,16 @@ namespace OpenCS
             createDepthTexture = requiresDepthTexture && !requireDepthOnlyPass;
             createColorTexture |= createDepthTexture;
 
+            copyOpaqueColor = cameraData.requireOpaqueTexture;
+
             CreateCameraRenderTarget(ref cameraData);
-            SetRenderTarget();
 
-            if (postFXStack.IsActive){
-                if (flags > CameraClearFlags.Color) { flags = CameraClearFlags.Color; }
-            }
+            ClearFlag clearFlag = GetCameraClearFlag(camera.clearFlags);
+            if (postFXStack.IsActive) { clearFlag = ClearFlag.All; }
+            Color clearColor = (clearFlag & ClearFlag.Color) != 0 ? 
+                camera.backgroundColor.linear : Color.clear;
+            SetRenderTarget(clearFlag, clearColor);
 
-            buffer.ClearRenderTarget(
-                flags <= CameraClearFlags.Depth,
-                flags == CameraClearFlags.Color,
-                flags == CameraClearFlags.Color ?
-                    camera.backgroundColor.linear : Color.clear
-            );
             buffer.BeginSample(SampleName);
             ExecuteBuffer();
         }
@@ -148,6 +149,7 @@ namespace OpenCS
 
             if (copyOpaqueColor) { buffer.ReleaseTemporaryRT(cameraOpaqueTextureId); }
             if (createDepthTexture) { buffer.ReleaseTemporaryRT(cameraDepthTextureId); }
+
             if (createColorTexture) { buffer.ReleaseTemporaryRT(cameraColorAttachmentId); }
             if (createDepthTexture) { buffer.ReleaseTemporaryRT(cameraDepthAttachmentId); }
 
@@ -171,6 +173,67 @@ namespace OpenCS
             context.ExecuteCommandBuffer(buffer);
             buffer.Clear();
         }
+       
+        void DrawVisibleGeometry(ref RenderingData renderingDta)
+        {
+            ref CameraData cameraData = ref renderingDta.cameraData;
+            var filteringSettings = new FilteringSettings(RenderQueueRange.opaque,
+                renderingLayerMask : (uint)cameraData.renderingLayerMask
+            );
+            DrawingSettings drawingSettings = RenderingUtils.CreateDrawingSettings(unlitShaderTagId,
+                SortingCriteria.CommonOpaque, ref renderingDta);
+            drawingSettings.SetShaderPassName(1, litShaderTagId);
+            context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
+
+            context.DrawSkybox(camera);
+            CopyColorAndDepth(ref cameraData);
+          
+            var sortingSettings = drawingSettings.sortingSettings;
+            sortingSettings.criteria = SortingCriteria.CommonTransparent;
+            drawingSettings.sortingSettings = sortingSettings;
+            filteringSettings.renderQueueRange = RenderQueueRange.transparent;
+            context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
+            
+            bool cameraTargetResolved = postFXStack.IsActive || !createColorTexture;
+            if (!cameraTargetResolved) {
+                RenderTargetIdentifier cameraTarget = (cameraData.targetTexture != null) ? 
+                    new RenderTargetIdentifier(cameraData.targetTexture) : BuiltinRenderTextureType.CameraTarget;
+                RenderingUtils.FinalBlitProcedural(buffer, cameraColorAttachmentId, cameraTarget, cameraData.pixelRect);
+            }
+        }
+
+        void CopyColorAndDepth(ref CameraData cameraData)
+        {
+            // TODO: Use Command.CopyTexture, which is much more effcient than doing it via a full-screen draw call.
+
+            if (copyOpaqueColor || createDepthTexture)
+            {
+                buffer.EndSample(SampleName);
+                ExecuteBuffer();
+            }
+
+            if (copyOpaqueColor)
+            {
+                buffer.GetTemporaryRT(cameraOpaqueTextureId, cameraData.cameraTargetDescriptor);
+                RenderingUtils.BlitProcedural(buffer, cameraColorAttachmentId, cameraOpaqueTextureId, null, 0);
+                ExecuteBuffer();
+            }
+
+            if (createDepthTexture)
+            {
+                //TODO: SV_DEPTH
+                buffer.GetTemporaryRT(cameraDepthTextureId, cameraData.cameraTargetDescriptor);
+                RenderingUtils.BlitProcedural(buffer, cameraDepthAttachmentId, cameraDepthTextureId, null, 0);
+                ExecuteBuffer();
+            }
+
+            if (copyOpaqueColor || createDepthTexture)
+            {
+                SetRenderTarget(ClearFlag.None, Color.clear);
+                buffer.BeginSample(SampleName);
+                ExecuteBuffer();
+            }
+        }
 
         void CreateCameraRenderTarget(ref CameraData cameraData)
         {
@@ -191,69 +254,60 @@ namespace OpenCS
             }
         }
 
-        void SetRenderTarget()
+        void SetRenderTarget(ClearFlag clearFlag, Color clearColor)
         {
-            if (createColorTexture)
+            RenderTargetIdentifier colorAttachment = createColorTexture ?
+                (RenderTargetIdentifier)cameraColorAttachmentId : BuiltinRenderTextureType.CameraTarget;
+
+            RenderTargetIdentifier depthAttachment = createDepthTexture ?
+                (RenderTargetIdentifier)cameraDepthAttachmentId : BuiltinRenderTextureType.CameraTarget;
+
+            SetRenderTarget(buffer, colorAttachment, depthAttachment, clearFlag, clearColor);
+        }
+
+        internal static ClearFlag GetCameraClearFlag(CameraClearFlags cameraClearFlags)
+        {
+#if UNITY_EDITOR
+            // For now, to fix FrameDebugger in Editor, force a clear.
+            cameraClearFlags = CameraClearFlags.Color;
+#endif
+            // Always clear on first render pass in mobile as it's same perf of DontCare and avoid tile clearing issues.
+            if (Application.isMobilePlatform)
+                return ClearFlag.All;
+
+            if ((cameraClearFlags == CameraClearFlags.Skybox && RenderSettings.skybox != null) ||
+                cameraClearFlags == CameraClearFlags.Nothing)
+                return ClearFlag.Depth;
+
+            return ClearFlag.All;
+        }
+
+        internal static void SetRenderTarget(CommandBuffer cmd, RenderTargetIdentifier colorAttachment, 
+            RenderTargetIdentifier depthAttachment, ClearFlag clearFlag, Color clearColor)
+        {
+            RenderBufferLoadAction colorLoadAction = ((uint)clearFlag & (uint)ClearFlag.Color) != 0 ?
+                RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load;
+
+            RenderBufferLoadAction depthLoadAction = ((uint)clearFlag & (uint)ClearFlag.Depth) != 0 ?
+                RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load;
+
+            SetRenderTarget(cmd, colorAttachment, colorLoadAction, RenderBufferStoreAction.Store,
+                depthAttachment, depthLoadAction, RenderBufferStoreAction.Store, clearFlag, clearColor);
+        }
+
+        static void SetRenderTarget(CommandBuffer cmd,
+            RenderTargetIdentifier colorAttachment, RenderBufferLoadAction colorLoadAction, RenderBufferStoreAction colorStoreAction,
+            RenderTargetIdentifier depthAttachment, RenderBufferLoadAction depthLoadAction, RenderBufferStoreAction depthStoreAction,
+            ClearFlag clearFlag, Color clearColor)
+        {
+            if (depthAttachment == BuiltinRenderTextureType.CameraTarget)
             {
-                if (createDepthTexture)
-                {
-                    buffer.SetRenderTarget(cameraColorAttachmentId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store,
-                        cameraDepthAttachmentId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-                }
-                else
-                {
-                    buffer.SetRenderTarget(cameraColorAttachmentId, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-                }
+                RenderingUtils.SetRenderTarget(cmd, colorAttachment, colorLoadAction, colorStoreAction, clearFlag, clearColor);
             }
             else
             {
-                buffer.SetRenderTarget(BuiltinRenderTextureType.CameraTarget, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store);
-            }
-        }
-        
-        void DrawVisibleGeometry(ref RenderingData renderingDta)
-        {
-            var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
-            DrawingSettings drawingSettings = RenderingUtils.CreateDrawingSettings(unlitShaderTagId,
-                SortingCriteria.CommonOpaque, ref renderingDta);
-            drawingSettings.SetShaderPassName(1, litShaderTagId);
-            context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
-            context.DrawSkybox(camera);
-            
-            CopyColorAndDepth(renderingDta.cameraData);
-          
-            var sortingSettings = drawingSettings.sortingSettings;
-            sortingSettings.criteria = SortingCriteria.CommonTransparent;
-            drawingSettings.sortingSettings = sortingSettings;
-            filteringSettings.renderQueueRange = RenderQueueRange.transparent;
-            context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
-            
-            bool cameraTargetResolved = postFXStack.IsActive || !createColorTexture;
-            if (!cameraTargetResolved) {
-                RenderingUtils.BlitProcedural(buffer, cameraColorAttachmentId, -1);
-            }
-        }
-
-        void CopyColorAndDepth(CameraData cameraData)
-        {
-            if (copyOpaqueColor)
-            {
-                buffer.GetTemporaryRT(cameraOpaqueTextureId, cameraData.cameraTargetDescriptor);
-                RenderingUtils.BlitProcedural(buffer, cameraColorAttachmentId, cameraOpaqueTextureId, null, 0);
-                ExecuteBuffer();
-            }
-
-            if (createDepthTexture)
-            {
-                buffer.GetTemporaryRT(cameraDepthTextureId, cameraData.cameraTargetDescriptor);
-                RenderingUtils.BlitProcedural(buffer, cameraDepthAttachmentId, cameraDepthTextureId, null, 0);
-                ExecuteBuffer();
-            }
-
-            if (copyOpaqueColor || createDepthTexture)
-            {
-                SetRenderTarget();
-                ExecuteBuffer();
+                RenderingUtils.SetRenderTarget(cmd, colorAttachment, colorLoadAction, colorStoreAction,
+                        depthAttachment, depthLoadAction, depthStoreAction, clearFlag, clearColor);
             }
         }
     }

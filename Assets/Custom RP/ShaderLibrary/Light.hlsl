@@ -45,6 +45,8 @@ Light GetDirectionalLight(int index, ShadowData shadowData, float3 positionWS, f
 	light.attenuation = GetDirectionalShadowAttenuation(
 		dirShadowData, shadowData, positionWS, interpolatedNormalWS
 	);
+	// unity_LightData.z is 1 when not culled by the culling mask, otherwise 0.
+	light.attenuation *= unity_LightData.z;
 	return light;
 }
 

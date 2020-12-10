@@ -1,4 +1,4 @@
-Shader "OpenCS/CustomRP/PostFXStack"
+Shader "Hidden/CustomRP/PostFXStack"
 {
 	SubShader
 	{
@@ -20,6 +20,25 @@ Shader "OpenCS/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment DepthStripesPassFragment
+
+			#include "../../ShaderLibrary/DeclareDepthTexture.hlsl"
+
+			half4 DepthStripesPassFragment(Varyings input) : SV_TARGET {
+				float rawDepth = SampleCameraDepth(input.fxUV);
+				half4 color = GetSource(input.fxUV);
+
+				#if UNITY_REVERSED_Z
+					bool hasDepth = rawDepth != 0;
+				#else
+					bool hasDepth = rawDepth != 1;
+				#endif
+
+				if (hasDepth) {
+					float depth = LinearEyeDepth(rawDepth, _ZBufferParams);
+					color *= pow(sin(3.14 * depth), 2.0);
+				}
+				return color;
+			}
 			ENDHLSL
 		}
 

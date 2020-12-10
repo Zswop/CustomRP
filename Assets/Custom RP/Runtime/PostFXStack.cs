@@ -4,7 +4,6 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEditor;
-using UnityEngine.Rendering.Universal;
 using static OpenCS.PostFXSettings;
 
 namespace OpenCS
@@ -57,7 +56,7 @@ namespace OpenCS
         CommandBuffer buffer = new CommandBuffer { name = bufferName };
 
         private bool postProcessEnabled = false;
-        ScriptableRenderContext context;
+        private RenderTexture targetTexture;
         Camera camera;
 
         RenderTextureDescriptor baseDescriptor;
@@ -77,12 +76,10 @@ namespace OpenCS
             }
         }
 
-        public void Setup(ScriptableRenderContext context, ref CameraData cameraData, 
-            PostFXSettings settings, int colorLUTResolution)
+        public void Setup(ref CameraData cameraData, PostFXSettings settings, int colorLUTResolution)
         {
-            this.context = context;
             this.camera = cameraData.camera;
-
+            this.targetTexture = cameraData.targetTexture;
             this.baseDescriptor = cameraData.cameraTargetDescriptor;
             this.settings = cameraData.cameraType <= CameraType.SceneView ? settings : null;
             this.postProcessEnabled = cameraData.postProcessEnabled;
@@ -106,7 +103,7 @@ namespace OpenCS
             return GetDescriptor(baseDescriptor.width, baseDescriptor.height, 0);
         }
 
-        public void Render(int cameraColorId, int camearaDepthId)
+        public void Render(ScriptableRenderContext context, int cameraColorId)
         {
             bool enableDepthStripes = settings.DepthStripes;
             bool enableBlur = settings.Blur.maxIterations > 0;
@@ -122,7 +119,7 @@ namespace OpenCS
             if (enableDepthStripes)
             {
                 buffer.GetTemporaryRT(depthStripesResultId, descriptor, FilterMode.Bilinear);
-                ApplyDepthStripes(srcId, depthStripesResultId, camearaDepthId);
+                ApplyDepthStripes(srcId, depthStripesResultId);
                 dstId = srcId = depthStripesResultId;
             }
 
@@ -162,20 +159,22 @@ namespace OpenCS
             if (enableToneMapping) { buffer.ReleaseTemporaryRT(toneMappingResultId); }
             if (enableBloom) { buffer.ReleaseTemporaryRT(bloomResultId); }
             if (enableBlur) { buffer.ReleaseTemporaryRT(blurResultId); }
+            targetTexture = null;
 
             context.ExecuteCommandBuffer(buffer);
             buffer.Clear();
         }
 
-        public void Draw(int from, int to, Pass pass)
+        void Draw(int from, int to, Pass pass)
         {
-            RenderingUtils.BlitProcedural(buffer, from, to, settings.Material, (int)pass);
+            var target = to != -1 ? to : (targetTexture != null ? 
+                new RenderTargetIdentifier(targetTexture) : BuiltinRenderTextureType.CameraTarget);
+            RenderingUtils.BlitProcedural(buffer, from, target, settings.Material, (int)pass);
         }
 
-        void ApplyDepthStripes(int sourceId, int targetId, int cameraDepthId)
+        void ApplyDepthStripes(int sourceId, int targetId)
         {
             buffer.BeginSample("Depth Stripes");
-            buffer.SetGlobalTexture(depthTexId, cameraDepthId);
             Draw(sourceId, targetId, Pass.DepthStripes);
             buffer.EndSample("Depth Stripes");
         }
@@ -277,8 +276,7 @@ namespace OpenCS
             {
                 buffer.ReleaseTemporaryRT(_BloomMipDown[i]);
                 if (i > 0) buffer.ReleaseTemporaryRT(_BloomMipUp[i]);
-            }
-
+            }            
             buffer.EndSample("Bloom");
         }
 

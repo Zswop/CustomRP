@@ -34,7 +34,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     ZERO_INITIALIZE(InputData, inputData)
 
 #if defined(_NORMAL_MAP)
-	inputData.positionWS = float3(input.normalWS.w, input.tangentWS.w, input.bitangent.w);
+	inputData.positionWS = float3(input.normalWS.w, input.tangentWS.w, input.bitangentWS.w);
 	inputData.normalWS = TransformTangentToWorld(normalTS,
 		half3x3(input.tangentWS.xyz, input.bitangentWS.xyz, input.normalWS.xyz));
 #else
@@ -43,8 +43,8 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
 #endif
 
     inputData.interpolatedNormalWS = input.normalWS.xyz;
-	inputData.viewDirectionWS = normalize(_WorldSpaceCameraPos - input.positionWS.xyz);
-	inputData.depthVS = -TransformWorldToView(input.positionWS.xyz).z;
+	inputData.viewDirectionWS = normalize(_WorldSpaceCameraPos - inputData.positionWS.xyz);
+	inputData.depthVS = -TransformWorldToView(inputData.positionWS.xyz).z;
 	inputData.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 
 	inputData.lightmapUV = GI_FRAGMENT_DATA(input);
@@ -52,7 +52,7 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
 }
 
 Varyings LitPassVertex(Attributes input) {
-	Varyings output;
+	Varyings output = (Varyings)0;
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
 	

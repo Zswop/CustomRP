@@ -1,0 +1,140 @@
+﻿//Writing by Jiayun Li
+//Copyright (c) 2020
+
+using UnityEngine;
+
+public class Graph : MonoBehaviour 
+{
+	static int baseColorId = Shader.PropertyToID("_BaseColor");
+
+	[SerializeField]
+	Transform pointPrefab = default;
+
+	[SerializeField, Range(10, 100)]
+	int resolution = 10;
+
+	[SerializeField]
+	FunctionLibrary.FunctionName function = default;
+
+	public enum TransitionMode { Cycle, Random }
+
+	[SerializeField]
+	TransitionMode transitionMode = TransitionMode.Cycle;
+
+	[SerializeField, Min(0f)]
+	float functionDuration = 1f, transitionDuration = 1f;
+
+	[SerializeField]
+	public bool EnableInstance = false;
+
+	Transform[] points;
+	Renderer[] renders;
+
+	float duration;
+
+	bool transitioning;
+
+	FunctionLibrary.FunctionName transitionFunction;
+
+	MaterialPropertyBlock block;
+
+	void Awake () {
+		float step = 2f / resolution;
+		var scale = Vector3.one * step;
+		points = new Transform[resolution * resolution];
+		renders = new Renderer[resolution * resolution];
+		for (int i = 0; i < points.Length; i++) {
+			Transform point = Instantiate(pointPrefab);
+			point.localScale = scale;
+			point.SetParent(transform, false);
+			points[i] = point;
+			renders[i] = point.GetComponent<Renderer>();
+		}
+
+		if (block == null) {
+			block = new MaterialPropertyBlock();
+		}
+	}
+
+	void Update () {
+		duration += Time.deltaTime;
+		if (transitioning) {
+			if (duration >= transitionDuration) {
+				duration -= transitionDuration;
+				transitioning = false;
+			}
+		}
+		else if (duration >= functionDuration) {
+			duration -= functionDuration;
+			transitioning = true;
+			transitionFunction = function;
+			PickNextFunction();
+		}
+
+		if (transitioning) {
+			UpdateFunctionTransition();
+		}
+		else {
+			UpdateFunction();
+		}
+	}
+
+	void PickNextFunction () {
+		function = transitionMode == TransitionMode.Cycle ?
+			FunctionLibrary.GetNextFunctionName(function) :
+			FunctionLibrary.GetRandomFunctionNameOtherThan(function);
+	}
+
+	void UpdateFunction () {
+		FunctionLibrary.Function f = FunctionLibrary.GetFunction(function);
+		float time = Time.time;
+		float step = 2f / resolution;
+		float v = 0.5f * step - 1f;
+		for (int i = 0, x = 0, z = 0; i < points.Length; i++, x++) {
+			if (x == resolution) {
+				x = 0;
+				z += 1;
+				v = (z + 0.5f) * step - 1f;
+			}
+			float u = (x + 0.5f) * step - 1f;
+			Vector3 localPosition = f(u, v, time);
+            points[i].localPosition = localPosition;
+
+			if (EnableInstance) {
+				var color = new Color(localPosition.x * 0.5f + 0.5f,
+				localPosition.y * 0.5f + 0.5f, localPosition.z * 0.5f + 0.5f);
+				block.SetColor(baseColorId, color);
+				renders[i].SetPropertyBlock(block);
+			}
+        }
+	}
+
+	void UpdateFunctionTransition () {
+		FunctionLibrary.Function
+			from = FunctionLibrary.GetFunction(transitionFunction),
+			to = FunctionLibrary.GetFunction(function);
+		float progress = duration / transitionDuration;
+		float time = Time.time;
+		float step = 2f / resolution;
+		float v = 0.5f * step - 1f;
+		for (int i = 0, x = 0, z = 0; i < points.Length; i++, x++) {
+			if (x == resolution) {
+				x = 0;
+				z += 1;
+				v = (z + 0.5f) * step - 1f;
+			}
+			float u = (x + 0.5f) * step - 1f;
+			Vector3 localPosition = FunctionLibrary.Morph(
+				u, v, time, from, to, progress
+			);
+			points[i].localPosition = localPosition;
+
+			if (EnableInstance)	{
+				var color = new Color(localPosition.x * 0.5f + 0.5f,
+				localPosition.y * 0.5f + 0.5f, localPosition.z * 0.5f + 0.5f);
+				block.SetColor(baseColorId, color);
+				renders[i].SetPropertyBlock(block);
+			}
+		}
+	}
+}

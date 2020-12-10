@@ -10,7 +10,9 @@
 half3 CustomLighting(InputData inputData, SurfaceData surfaceData) {
 	ShadowData shadowData = GetShadowData(inputData.positionWS, inputData.depthVS, inputData.dither);
 	shadowData.shadowMask = GetShadowMask(inputData.lightmapUV);
-	BRDF brdf = GetBRDF(surfaceData.albedo, surfaceData.metallic, surfaceData.smoothness, surfaceData.alpha);
+
+	BRDF brdf = GetBRDF(surfaceData.albedo, surfaceData.metallic, surfaceData.smoothness, 
+		surfaceData.alpha);
 
 	float3 normal = inputData.normalWS;
 	float3 position = inputData.positionWS;

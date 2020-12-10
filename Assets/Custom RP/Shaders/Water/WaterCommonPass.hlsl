@@ -1,7 +1,6 @@
 ﻿#ifndef CUSTOM_WATER_COMMON_PASS_INCLUDED
 #define CUSTOM_WATER_COMMON_PASS_INCLUDED
 
-#include "LookingThroughWater.hlsl"
 #include "../LitPassCommon.hlsl"
 
 struct Attributes {
@@ -50,7 +49,7 @@ Varyings WaterPassVertex(Attributes input) {
 	WaveData waveData;
 	InitializeWaterWaveData(input.positionOS, waveData);
 	output.positionWS = TransformObjectToWorld(waveData.position);
-	output.positionCS = TransformWorldToHClip(output.positionWS);
+	output.positionCS = TransformWorldToHClip(output.positionWS);	
 	
 	float3 normalOS = normalize(cross(waveData.bitangent, waveData.tangent));
 	output.normalWS = TransformObjectToWorldNormal(normalOS);
@@ -58,8 +57,6 @@ Varyings WaterPassVertex(Attributes input) {
 		float sign = input.tangentOS.w * GetOddNegativeScale();
 		output.tangentWS = TransformObjectToWorldDir(waveData.tangent);
 		output.bitangentWS = cross(output.normalWS, output.tangentWS) * sign;
-		//output.bitangentWS = TransformObjectToWorldDir(waveData.bitangent);
-		//output.normalWS = normalize(cross(output.tangentWS, output.bitangentWS)) * sign;
 	#endif
 #else
 	output.positionWS = TransformObjectToWorld(input.positionOS);
@@ -77,6 +74,31 @@ Varyings WaterPassVertex(Attributes input) {
 	return output;
 }
 
+float BackgroundLinearEyeDepth(float2 uv) {
+	float rawDepth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, sampler_CameraDepthTexture, uv);
+	float backgroundDepth = LinearEyeDepth(rawDepth, _ZBufferParams);
+	return backgroundDepth;
+}
+
+float3 ColorBelowWater(float4 screenPos, float3 normalTS) {
+	float2 uvOffset = normalTS.xy * _RefractionStrength;
+	float2 uv = (screenPos.xy + uvOffset) / screenPos.w;
+	float backgroundDepth = BackgroundLinearEyeDepth(uv);
+	//return pow(sin(3.14 * backgroundDepth), 2.0);
+	
+	float surfaceDepth = UNITY_Z_0_FAR_FROM_CLIPSPACE(screenPos.z);
+	float depthDifference = backgroundDepth - surfaceDepth;
+	//return depthDifference / 20;
+
+	uvOffset *= saturate(depthDifference);
+	uv = (screenPos.xy + uvOffset) / screenPos.w;
+	backgroundDepth = BackgroundLinearEyeDepth(uv);
+	depthDifference = backgroundDepth - surfaceDepth;
+	float3 backgroundColor = SAMPLE_TEXTURE2D(_CameraOpaqueTexture, sampler_CameraOpaqueTexture, uv).rgb;
+	float fogFactor = exp2(-_WaterFogDensity * depthDifference);
+	return lerp(_WaterFogColor, backgroundColor, fogFactor);
+}
+
 half4 WaterPassFragment(Varyings input) : SV_TARGET {
 	SurfaceData surfaceData;
 	InitializeWaterSurfaceData(input.baseUV, surfaceData);
@@ -84,9 +106,8 @@ half4 WaterPassFragment(Varyings input) : SV_TARGET {
 	InputData inputData;
 	InitializeInputData(input, surfaceData.normalTS, inputData);
 
-	surfaceData.albedo = ColorBelowWater(inputData.screenPos, input.baseUV);
-	//surfaceData.alpha = 1.0;
-	return half4(surfaceData.albedo, surfaceData.alpha);
+	float3 colorBelow = ColorBelowWater(inputData.screenPos, surfaceData.normalTS);
+	surfaceData.emission = colorBelow * (1 - surfaceData.alpha);
 
 	half3 color = CustomLighting(inputData, surfaceData);
 	return half4(color, surfaceData.alpha);

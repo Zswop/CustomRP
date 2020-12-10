@@ -201,8 +201,9 @@ namespace OpenCS
             {
                 if (material == null && shader != null)
                 {
-                    material = new Material(shader);
-                    material.hideFlags = HideFlags.HideAndDontSave;
+                    //material = new Material(shader);
+                    //material.hideFlags = HideFlags.HideAndDontSave;
+                    material = UnityEngine.Rendering.CoreUtils.CreateEngineMaterial(shader);
                 }
                 return material;
             }

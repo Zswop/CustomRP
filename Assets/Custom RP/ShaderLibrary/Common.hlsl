@@ -19,6 +19,9 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/SpaceTransforms.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 
+//SAMPLER(sampler_linear_clamp);
+//SAMPLER(sampler_point_clamp);
+
 struct InputData {
 	float3  positionWS;
 	float3  normalWS;
@@ -79,5 +82,7 @@ float4 ComputeScreenPos(float4 positionCS) {
     o.zw = positionCS.zw;
     return o;
 }
+
+#define TRANSFORM_TEX_FLOWUV(tex, name, flow) TRANSFORM_TEX((tex.xy + flow.xy * _Time.y), name)
 
 #endif

@@ -17,7 +17,7 @@ namespace OpenCS
 
         public CustomRenderPipeline(CustomRenderPipelineAsset asset)
         {
-            GraphicsSettings.useScriptableRenderPipelineBatching = asset.useDynamicBatching;
+            GraphicsSettings.useScriptableRenderPipelineBatching = asset.useSRPBatcher;
             GraphicsSettings.lightsUseLinearIntensity = true;
 
             Shader.globalRenderPipeline = "CustomPipeline";
@@ -62,14 +62,30 @@ namespace OpenCS
             cameraData.requireOpaqueTexture = settings.requireOpaqueTexture;
             cameraData.requireDepthTexture = settings.requireDepthTexture;
             cameraData.renderScale = settings.renderScale;
-
+            
             float maxShadowDistance = Mathf.Min(settings.shadows.maxDistance, camera.farClipPlane);
             cameraData.maxShadowDistance = maxShadowDistance >= camera.nearClipPlane ? maxShadowDistance : 0.0f;
 
-            bool postProcessEnabled = false;
             var additinalCameraData = camera.gameObject.GetComponent<CustomAdditinalCameraData>();
-            if (additinalCameraData != null) { postProcessEnabled = additinalCameraData.PostProcessing; }
-            cameraData.postProcessEnabled = postProcessEnabled && SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
+            if (additinalCameraData != null)
+            {
+                cameraData.postProcessEnabled = additinalCameraData.postProcessing;
+                cameraData.requireOpaqueTexture = additinalCameraData.requireOpaqueTexture;
+                cameraData.requireDepthTexture = additinalCameraData.requireDepthTexture;
+                cameraData.renderingLayerMask = additinalCameraData.renderingLayerMask;
+                cameraData.maxShadowDistance = (additinalCameraData.renderShadows ?
+                    cameraData.maxShadowDistance : 0.0f);
+            }
+            else
+            {
+                cameraData.postProcessEnabled = false;
+                cameraData.requireOpaqueTexture = settings.requireOpaqueTexture;
+                cameraData.requireOpaqueTexture = settings.requireDepthTexture;
+                cameraData.renderingLayerMask = -1;
+            }
+
+            cameraData.postProcessEnabled &= SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
+            cameraData.pixelRect = camera.pixelRect;
 
             int msaaSamples = 1;
             int msaaSettingSamples = (int)settings.MSAA;

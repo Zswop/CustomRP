@@ -135,7 +135,7 @@ namespace OpenCS
                 OpaquePreset();
                 ClipPreset();
                 FadePreset();
-                if (HasPremultiplyAlpha && PresetButton("Transparent")) {
+                if (HasPremultiplyAlpha) {
                     TransparentPreset();
                 }
             }

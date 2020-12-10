@@ -3523,6 +3523,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   postProcessing: 0
+  renderingLayerMask: -1
+  requireDepthTexture: 1
+  requireOpaqueTexture: 1
+  renderShadows: 0
 --- !u!1 &1422476102
 GameObject:
   m_ObjectHideFlags: 0

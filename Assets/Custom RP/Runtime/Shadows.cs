@@ -191,6 +191,8 @@ namespace OpenCS
 
         public void Render()
         {
+            ClearRenderingState();
+
             if (shadowedDirLightCount > 0)
             {
                 RenderDirectionalShadows();
@@ -214,6 +216,13 @@ namespace OpenCS
             buffer.SetGlobalVector(shadowDistanceFadeId, new Vector4(1f / settings.maxDistance, 
                 1f / settings.distanceFade, 1f / (1f - f * f)));
             ExecuteBuffer();
+        }
+
+        void ClearRenderingState()
+        {
+            SetKeywords(directionalFilterKeywords, -1);
+            SetKeywords(cascadeBlendKeywords, -1);
+            SetKeywords(otherFilterKeywords, -1);
         }
 
         void RenderDirectionalShadows()
@@ -253,7 +262,9 @@ namespace OpenCS
         void RenderDirectionalShadows(int index, int split, int tileSize)
         {
             ShadowedDirectionalLight light = shadowedDirectionalLights[index];
-            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex) {
+                useRenderingLayerMaskTest = true
+            };
             int cascadeCount = settings.directional.cascadeCount;
             int tileOffset = index * cascadeCount;
             Vector3 ratios = settings.directional.CascadeRatios;
@@ -333,7 +344,9 @@ namespace OpenCS
         void RenderSpotShadows(int index, int split, int tileSize)
         {
             ShadowedOtherLight light = shadowedOtherLights[index];
-            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex) {
+                useRenderingLayerMaskTest = true
+            };
             cullingResults.ComputeSpotShadowMatricesAndCullingPrimitives(light.visibleLightIndex,
                 out Matrix4x4 viewMatrix, out Matrix4x4 projectionMatrix, out ShadowSplitData splitData);
             shadowSettings.splitData = splitData;
@@ -357,7 +370,9 @@ namespace OpenCS
         void RenderPointShadows(int index, int split, int tileSize)
         {
             ShadowedOtherLight light = shadowedOtherLights[index];
-            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex);
+            var shadowSettings = new ShadowDrawingSettings(cullingResults, light.visibleLightIndex) {
+                useRenderingLayerMaskTest = true
+            };
 
             float texelSize = 2f / tileSize;
             float filterSize = texelSize * ((float)settings.other.filter + 1f);

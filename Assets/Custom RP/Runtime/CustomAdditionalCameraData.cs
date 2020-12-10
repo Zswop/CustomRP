@@ -11,12 +11,14 @@ namespace OpenCS
     [ImageEffectAllowedInSceneView]
     public class CustomAdditinalCameraData : MonoBehaviour
     {
-        [SerializeField] bool postProcessing = false;
+        [SerializeField] public bool postProcessing = false;
 
-        public bool PostProcessing 
-        { 
-            get { return postProcessing; }
-            set { postProcessing = value; }
-        }
+        [RenderingLayerMaskField]
+        [SerializeField] public int renderingLayerMask = -1;
+
+        [SerializeField] public bool requireDepthTexture;
+        [SerializeField] public bool requireOpaqueTexture;
+
+        [SerializeField] public bool renderShadows;
     }
 }
