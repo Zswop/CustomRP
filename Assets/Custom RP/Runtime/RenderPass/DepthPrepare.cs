@@ -34,6 +34,9 @@ namespace OpenCS
             buffer.ClearRenderTarget(true, false, Color.clear);
 
             buffer.BeginSample(bufferName);
+            context.ExecuteCommandBuffer(buffer);
+            buffer.Clear();
+
             var filteringSettings = new FilteringSettings(RenderQueueRange.opaque);
             DrawingSettings depthOnlyDrawSettings = RenderingUtils.CreateDrawingSettings(depthOnlyShaderTagId,
                 SortingCriteria.CommonOpaque, ref renderingData);

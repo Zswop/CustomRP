@@ -50,6 +50,11 @@ Light GetDirectionalLight(int index, ShadowData shadowData, float3 positionWS, f
 	return light;
 }
 
+Light GetMainDirectionLight(ShadowData shadowData, float3 positionWS, float3 interpolatedNormalWS) {
+	Light light = GetDirectionalLight(0, shadowData, positionWS, interpolatedNormalWS);
+	return light;
+}
+
 int GetOtherLightCount() {
 	return _OtherLightCount;
 }

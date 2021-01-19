@@ -24,16 +24,18 @@
 
 struct InputData {
 	float3  positionWS;
-	float3  normalWS;
-	float3  viewDirectionWS;
-	float3  interpolatedNormalWS;
 
-	float depthVS;
-	float dither;
-	float4 screenPos;
+	half3	normalWS;
+	half3	tangentWS;
+	half3	viewDirectionWS;
+	half3	interpolatedNormalWS;
+	half3	fogCoord;
+	half3	bakedGI;
 
-	float2 lightmapUV;
-	float3 bakedGI;
+	float	depthVS;
+	float	dither;
+	float4	screenPos;
+	float2	lightmapUV;
 };
 
 float Square(float x) {
@@ -51,7 +53,7 @@ void ClipLOD(float2 positionCS, float fade) {
 	#endif
 }
 
-float3 DecodeNormal(float4 normalTS, float scale) {
+half3 DecodeNormal(half4 normalTS, half scale) {
 	#if defined(UNITY_NO_DXT5nm)
 		return UnpackNormalRGB(normalTS, scale);
 	#else
@@ -82,7 +84,5 @@ float4 ComputeScreenPos(float4 positionCS) {
     o.zw = positionCS.zw;
     return o;
 }
-
-#define TRANSFORM_TEX_FLOWUV(tex, name, flow) TRANSFORM_TEX((tex.xy + flow.xy * _Time.y), name)
 
 #endif

@@ -9,7 +9,7 @@ struct Attributes {
 
 struct Varyings {
 	float4 positionCS : SV_POSITION;
-	float2 baseUV : VAR_BASE_UV;
+	float4 baseUV : VAR_BASE_UV;
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
@@ -18,17 +18,16 @@ Varyings DepthOnlyPassVertex(Attributes input) {
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
 
-	float3 positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(positionWS);
+	output.positionCS = TransformObjectToHClip(input.positionOS);
 	output.baseUV = TransformBaseUV(input.baseUV);
 	return output;
 }
 
-float4 DepthOnlyPassFragment(Varyings input) : SV_TARGET{
+half4 DepthOnlyPassFragment(Varyings input) : SV_TARGET {
 	UNITY_SETUP_INSTANCE_ID(input);	
 	ClipLOD(input.positionCS.xy, unity_LODFade.x);
 
-	float4 base = GetBase(input.baseUV);
+	half4 base = GetBase(input.baseUV);
 	#if defined(_CLIPPING)
 		clip(base.a - GetCutoff(input.baseUV));
 	#endif

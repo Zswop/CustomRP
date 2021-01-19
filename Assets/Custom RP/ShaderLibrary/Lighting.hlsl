@@ -9,11 +9,16 @@ half3 GetLighting(BRDF brdf, Light light, float3 normal, float3 viewDirection) {
 	return GetIncomingLight(light, normal) * DirectBRDF(brdf, light.direction, normal, viewDirection);
 }
 
-half3 GetIndirectLighting(BRDF brdf, half3 bakedGI, half3 indirectSpec,	half occlusion, 
-	float3 normal, float3 viewDirection) {
-	half3 diffuse = bakedGI * occlusion;
-	half3 specular = indirectSpec * occlusion;
-	return IndirectBRDF(brdf, diffuse, specular, normal, viewDirection);
+half3 GetLambertDiffuse(half3 diffuseColor, Light light, float3 normal, float3 viewDirection) {
+	return GetIncomingLight(light, normal) * diffuseColor;
+}
+
+half3 GetBRDFSpecular(BRDF brdf, Light light, float3 normal, float3 viewDirection) {
+	return GetIncomingLight(light, normal) * DirectBRDFSpecular(brdf, light.direction, normal, viewDirection);
+}
+
+half3 GetBRDFIndirect(BRDF brdf, half3 diffuse, half3 specular, float3 normal, float3 viewDirection, half fresnel) {
+	return IndirectBRDF(brdf, diffuse, specular, normal, viewDirection, fresnel);
 }
 
 #endif

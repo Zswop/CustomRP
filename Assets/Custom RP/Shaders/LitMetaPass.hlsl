@@ -15,7 +15,7 @@ struct Attributes {
 
 struct Varyings {
 	float4 positionCS : SV_POSITION;
-	float2 baseUV : VAR_BASE_UV;
+	float4 baseUV : VAR_BASE_UV;
 };
 
 Varyings MetaPassVertex(Attributes input) {
@@ -32,8 +32,7 @@ half4 MetaPassFragment(Varyings input) : SV_TARGET {
 	SurfaceData surfaceData;
 	InitializeSurfaceData(input.baseUV, surfaceData);
 	BRDF brdf = GetBRDF(surfaceData.albedo, surfaceData.metallic,
-		surfaceData.smoothness,	surfaceData.alpha
-	);
+		surfaceData.smoothness,	surfaceData.alpha);
 
 	half4 meta = 0.0;
 	if (unity_MetaFragmentControl.x) {

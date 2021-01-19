@@ -1,4 +1,4 @@
-Shader "OpenCS/CustomRP/Unlit"
+Shader "CustomRP/Unlit"
 {
     Properties
 	{

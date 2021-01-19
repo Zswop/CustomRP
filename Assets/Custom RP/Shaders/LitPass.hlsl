@@ -15,38 +15,41 @@ struct Attributes {
 
 struct Varyings {
 	float4 positionCS : SV_POSITION;
-	float2 baseUV : VAR_BASE_UV;
+	float4 baseUV : VAR_BASE_UV;
 
-#if defined(_NORMAL_MAP)
-	float4 normalWS : VAR_NORMAL;	// xyz: normal, w: positionWS.x 
-	float4 tangentWS : VAR_TANGENT; // xyz: tangent, w: positionWS.y
-	float4 bitangentWS : VAR_BITANGENT; // xyz: bitangent, w: positionWS.z
-#else
 	float3 normalWS : VAR_NORMAL;
 	float3 positionWS : VAR_POSITION;
+#if defined(_NORMAL_MAP)
+	float4 tangentWS : VAR_TANGENT;
 #endif
 
-	GI_VARYINGS_DATA		//TODO: combine vertexlight
+	half3 fogFactor	: VAR_FOG_FACTOR;
+
+	GI_VARYINGS_DATA		//TODO: vertexlight
 	UNITY_VERTEX_INPUT_INSTANCE_ID
 };
 
 void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData) {
     ZERO_INITIALIZE(InputData, inputData)
 
+	inputData.positionWS = input.positionWS.xyz;
+
 #if defined(_NORMAL_MAP)
-	inputData.positionWS = float3(input.normalWS.w, input.tangentWS.w, input.bitangentWS.w);
+	inputData.tangentWS = input.tangentWS.xyz;
+	half sign = input.tangentWS.w * GetOddNegativeScale();
+	half3 bitangentWS = cross(input.normalWS.xyz, input.tangentWS.xyz) * sign;
 	inputData.normalWS = TransformTangentToWorld(normalTS,
-		half3x3(input.tangentWS.xyz, input.bitangentWS.xyz, input.normalWS.xyz));
+		half3x3(input.tangentWS.xyz, bitangentWS.xyz, input.normalWS.xyz));
 #else
 	inputData.normalWS = normalize(input.normalWS);
-	inputData.positionWS = input.positionWS;
 #endif
 
     inputData.interpolatedNormalWS = input.normalWS.xyz;
-	inputData.viewDirectionWS = normalize(_WorldSpaceCameraPos - inputData.positionWS.xyz);
-	inputData.depthVS = -TransformWorldToView(inputData.positionWS.xyz).z;
+	inputData.viewDirectionWS = normalize(_WorldSpaceCameraPos - input.positionWS.xyz);
+	inputData.depthVS = -TransformWorldToView(input.positionWS.xyz).z;
 	inputData.dither = InterleavedGradientNoise(input.positionCS.xy, 0);
 
+	inputData.fogCoord = input.fogFactor;
 	inputData.lightmapUV = GI_FRAGMENT_DATA(input);
 	inputData.bakedGI = SampleGI(inputData.lightmapUV, inputData.normalWS);
 }
@@ -55,24 +58,19 @@ Varyings LitPassVertex(Attributes input) {
 	Varyings output = (Varyings)0;
 	UNITY_SETUP_INSTANCE_ID(input);
 	UNITY_TRANSFER_INSTANCE_ID(input, output);
-	
-	float3 positionWS = TransformObjectToWorld(input.positionOS);
-	output.positionCS = TransformWorldToHClip(positionWS);
 
-	float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+	output.positionWS = TransformObjectToWorld(input.positionOS);
+	output.positionCS = TransformWorldToHClip(output.positionWS);
+
+	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 #if defined(_NORMAL_MAP)
-	float sign = input.tangentOS.w * GetOddNegativeScale();
 	float3 tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
-	float3 bitangentWS = cross(output.normalWS, output.tangentWS) * sign;
-	output.normalWS = float4(normalWS, positionWS.x);
-	output.tangentWS = float4(tangentWS, positionWS.y);
-	output.bitangentWS = float4(bitangentWS, positionWS.z);
-#else
-	output.normalWS = normalWS;
-	output.positionWS = positionWS;
+	output.tangentWS = float4(tangentWS, input.tangentOS.w);
 #endif
 
 	TRANSFER_GI_DATA(input, output);
+
+	output.fogFactor = ComputeFogFactor(output.positionWS);
 	output.baseUV = TransformBaseUV(input.baseUV);
 	return output;
 }
@@ -80,11 +78,6 @@ Varyings LitPassVertex(Attributes input) {
 half4 LitPassFragment(Varyings input) : SV_TARGET {
 	UNITY_SETUP_INSTANCE_ID(input);
 	ClipLOD(input.positionCS.xy, unity_LODFade.x);
-	
-	half4 base = GetBase(input.baseUV);
-	#if defined(_CLIPPING)
-		clip(base.a - GetCutoff(input.baseUV));
-	#endif
 
 	SurfaceData surfaceData;
 	InitializeSurfaceData(input.baseUV, surfaceData);
@@ -93,7 +86,7 @@ half4 LitPassFragment(Varyings input) : SV_TARGET {
 	InitializeInputData(input, surfaceData.normalTS, inputData);
 
 	half3 color = CustomLighting(inputData, surfaceData);
-	return half4(color, surfaceData.alpha);
+	return OutputColor(color, inputData, surfaceData);
 }
 
 #endif

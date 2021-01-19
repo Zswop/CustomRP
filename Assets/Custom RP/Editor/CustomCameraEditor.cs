@@ -7,7 +7,7 @@ using UnityEditor;
 namespace OpenCS
 {
     [CanEditMultipleObjects]
-    [CustomEditor(typeof(CustomAdditinalCameraData))]
+    [CustomEditor(typeof(CustomAdditionalCameraData))]
     public class CustomAdditinalCameraDataEditor : Editor
     {
         public override void OnInspectorGUI()
@@ -19,7 +19,7 @@ namespace OpenCS
     [CustomEditorForRenderPipeline(typeof(Camera), typeof(CustomRenderPipelineAsset))]
     public class CustomCameraEditor : CameraEditor
     {
-        private CustomAdditinalCameraData additionalCameraData;
+        private CustomAdditionalCameraData additionalCameraData;
         private SerializedObject additionalCameraDataSO;
         SerializedProperty postProcessingSP;
 
@@ -30,7 +30,7 @@ namespace OpenCS
 
         public Camera camera { get { return target as Camera; } }
 
-        void Init(CustomAdditinalCameraData additionalCameraData)
+        void Init(CustomAdditionalCameraData additionalCameraData)
         {
             if (additionalCameraData == null) { return; }
 
@@ -42,9 +42,9 @@ namespace OpenCS
         public new void OnEnable()
         {
             settings.OnEnable();
-            additionalCameraData = camera.gameObject.GetComponent<CustomAdditinalCameraData>();
+            additionalCameraData = camera.gameObject.GetComponent<CustomAdditionalCameraData>();
             if (additionalCameraData == null){
-                additionalCameraData = camera.gameObject.AddComponent<CustomAdditinalCameraData>();
+                additionalCameraData = camera.gameObject.AddComponent<CustomAdditionalCameraData>();
             }
             Init(additionalCameraData);
         }
@@ -68,7 +68,7 @@ namespace OpenCS
             {
                 if (additionalCameraDataSO == null) 
                 {
-                    var additionalCameraData = Undo.AddComponent<CustomAdditinalCameraData>(camera.gameObject);
+                    var additionalCameraData = Undo.AddComponent<CustomAdditionalCameraData>(camera.gameObject);
                     Init(additionalCameraData);
                 }
 

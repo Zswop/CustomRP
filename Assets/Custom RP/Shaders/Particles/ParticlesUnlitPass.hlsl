@@ -72,10 +72,14 @@ half3 DistortionScene(half4 base, float3 screenPos, float2 uvOffset, half blend)
 
 half4 ParticleUnlitFragment(Varyings input) : SV_Target
 {
-	float2 uvOffset = DistortionUVOffset(input.texcoord);
-	half4 base = DistortionBase(input.texcoord, uvOffset);
+	float2 uvOffset = 0;
+#if defined(DISTORTION_UV_OFFSET)
+	uvOffset = DISTORTION_UV_OFFSET(input.texcoord);
+#endif
+
+	half4 color = SampleBase(input.texcoord, uvOffset);
 #if defined(_VERTEX_COLORS)
-	base *= input.color;
+	color *= input.color;
 #endif
 
     float3 screenPos = float3(0,0,0);
@@ -86,7 +90,7 @@ half4 ParticleUnlitFragment(Varyings input) : SV_Target
 #if defined(_NEAR_FADE)
 	float curDepth = LinearEyeDepth(screenPos.z, _ZBufferParams);
 	float nearAttenuation = (curDepth - _NearFadeDistance) / _NearFadeRange;
-	base.a *= saturate(nearAttenuation);
+	color.a *= saturate(nearAttenuation);
 #endif
 
 #if defined(_SOFT_PARTICLES)
@@ -94,14 +98,18 @@ half4 ParticleUnlitFragment(Varyings input) : SV_Target
 	float thisDepth = LinearEyeDepth(screenPos.z, _ZBufferParams);
 	float depthDelta = sceneDepth - thisDepth;
 	float softAttenuation = (depthDelta - _SoftParticlesDistance) / _SoftParticlesRange;
-	base.a *= saturate(softAttenuation);
+	color.a *= saturate(softAttenuation);
 #endif
 
-#if defined(_DISTORTION)
-	half blend = GetDistortionBlend();
-	base.rgb = DistortionScene(base, screenPos, uvOffset, blend);
+#if defined(_DISTORTION) && defined(_DISTORTION_SCENE)
+	color.rgb = DistortionScene(color, screenPos, uvOffset, _DistortionBlend);
 #endif
-	return base;
+
+#if defined(_ALPHA_MASK)
+	color.r *= AlphaMask(input.texcoord, uvOffset);
+#endif
+
+	return color;
 }
 
 #endif

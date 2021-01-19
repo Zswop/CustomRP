@@ -9,7 +9,7 @@ namespace OpenCS
     [DisallowMultipleComponent]
     [RequireComponent(typeof(Camera))]
     [ImageEffectAllowedInSceneView]
-    public class CustomAdditinalCameraData : MonoBehaviour
+    public class CustomAdditionalCameraData : MonoBehaviour
     {
         [SerializeField] public bool postProcessing = false;
 

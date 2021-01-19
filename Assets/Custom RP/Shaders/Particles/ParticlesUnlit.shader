@@ -1,4 +1,4 @@
-﻿Shader "OpenCS/CustomRP/Particles/Unlit"
+﻿Shader "CustomRP/Particles/Unlit"
 {
 	Properties
 	{
@@ -19,15 +19,22 @@
 
 		[Space(2)][Header(Distortion)]
 		[Toggle(_DISTORTION)] _DistortionToggle("Distortion", Float) = 0
-		[NoScaleOffset]_DistortionMap("Distortion Map", 2D) = "white"{}
-		_DistortionDirection("Distortion (X:xy, Y:zw)", Vector) = (0.0, 0.0, 0.0, 0.0)
+		[NoScaleOffset] _DistortionMap("Distortion Map", 2D) = "white"{}
+		_DistortionDirection("Distortion Direction", Vector) = (0.0, 0.0, 0.0, 0.0)
 		_DistortionStrength("Distortion Strength", Range(0, 1)) = 1.0
-		_DistortionBlend("Distortion Blend", Float) = 0.5
-		[MaterialToggle]_DistortionBase("Distortion Main", float) = 0
+		_DistortionBlend("Distortion Blend", Range(0.0, 1.0)) = 0.5
+		[MaterialToggle] _Distortion_Base("Distortion Main", Float) = 0
+		[MaterialToggle] _Distortion_Mask("Distortion Mask", Float) = 0
+		[Toggle(_DISTORTION_SCENE)] _Distortion_Scene("Distortion Scene", Float) = 0
+
+		[Header(Mask)]
+		[Toggle(_ALPHA_MASK)] _MaskToggle("Mask Alpha", Float) = 0
+		_MaskMap("MaskTex", 2D) = "white"{}
 
 		[HideInInspector] _SrcBlend("Src Blend", Float) = 5
 		[Enum(UnityEngine.Rendering.BlendMode)] _DstBlend("Dst Blend", Float) = 10
 		[Enum(UnityEngine.Rendering.CullMode)] _Cull("Cull Mode", Float) = 2
+		[Enum(UnityEngine.Rendering.CompareFunction)] _ZTest("ZTest Mode", float) = 4
 	}
 
 	SubShader
@@ -42,6 +49,7 @@
 		{
 			Blend[_SrcBlend][_DstBlend]
 			Cull[_Cull]
+			ZTest[_ZTest]
 			ZWrite Off
 		
 			HLSLPROGRAM
@@ -50,6 +58,11 @@
 			#pragma shader_feature _NEAR_FADE
 			#pragma shader_feature _SOFT_PARTICLES
 			#pragma shader_feature _DISTORTION
+			#pragma shader_feature _ALPHA_MASK
+			#pragma shader_feature _DISSOLVE
+
+			#pragma shader_feature _DISTORTION_SCENE
+			//#pragma multi_compile_local _DISTORTION _DISTORTION_UV
 
 			#pragma vertex ParticleUnlitVertex
 			#pragma fragment ParticleUnlitFragment

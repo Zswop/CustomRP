@@ -70,8 +70,8 @@ namespace OpenCS
                 Mathf.Pow(2.0f, colorAdjustments.postExposure),
                 colorAdjustments.contrast * 0.01f + 1.0f,
                 colorAdjustments.hueShift * (1.0f / 360.0f),
-                colorAdjustments.saturation * 0.01f + 1.0f
-                ));
+                colorAdjustments.saturation * 0.01f + 1.0f)
+            );
 
             buffer.SetGlobalVector(colorFilterId, colorAdjustments.colorFilter.linear);
         }

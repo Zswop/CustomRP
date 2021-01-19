@@ -58,10 +58,12 @@ namespace OpenCS
             lighting.Setup(context, ref cullingResults, ref renderingData);
             postFXStack.Setup(ref cameraData, renderingData.postFXSettings,
                 renderingData.colorLUTResolution);
-
-            SetupDepthPrepare(context, ref cullingResults, ref renderingData);
-            SetupColorGradingLut(context, ref renderingData);
             buffer.EndSample(SampleName);
+
+            SetupCameraProperties(camera);
+            SetupColorGradingLut(context, ref renderingData);
+            SetupDepthPrepare(context, ref cullingResults, ref renderingData);
+            //buffer.EndSample(SampleName);
 
             Setup(ref renderingData);
             DrawVisibleGeometry(ref renderingData);
@@ -114,10 +116,15 @@ namespace OpenCS
             }
         }
 
+        void SetupCameraProperties(Camera camera)
+        {
+            //TODO: PerCameraShaderVariables
+            context.SetupCameraProperties(camera);
+        }
+
         void Setup(ref RenderingData renderingData)
         {
             ref var cameraData = ref renderingData.cameraData;
-            context.SetupCameraProperties(camera);
             
             createColorTexture = cameraData.requireOpaqueTexture;
             createColorTexture |= cameraData.renderScale != 1.0f;
@@ -214,16 +221,22 @@ namespace OpenCS
 
             if (copyOpaqueColor)
             {
-                buffer.GetTemporaryRT(cameraOpaqueTextureId, cameraData.cameraTargetDescriptor);
+                RenderTextureDescriptor descriptor = cameraData.cameraTargetDescriptor;
+                descriptor.depthBufferBits = 0;
+                descriptor.msaaSamples = 1;
+                buffer.GetTemporaryRT(cameraOpaqueTextureId, descriptor, FilterMode.Point);
                 RenderingUtils.BlitProcedural(buffer, cameraColorAttachmentId, cameraOpaqueTextureId, null, 0);
                 ExecuteBuffer();
             }
 
             if (createDepthTexture)
             {
-                //TODO: SV_DEPTH
-                buffer.GetTemporaryRT(cameraDepthTextureId, cameraData.cameraTargetDescriptor);
-                RenderingUtils.BlitProcedural(buffer, cameraDepthAttachmentId, cameraDepthTextureId, null, 0);
+                RenderTextureDescriptor descriptor = cameraData.cameraTargetDescriptor;
+                descriptor.colorFormat = RenderTextureFormat.Depth;
+                descriptor.depthBufferBits = 32;
+                descriptor.msaaSamples = 1;
+                buffer.GetTemporaryRT(cameraDepthTextureId, descriptor, FilterMode.Point);
+                RenderingUtils.BlitProcedural(buffer, cameraDepthAttachmentId, cameraDepthTextureId, null, 1);
                 ExecuteBuffer();
             }
 

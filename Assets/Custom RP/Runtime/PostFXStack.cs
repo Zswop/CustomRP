@@ -113,8 +113,9 @@ namespace OpenCS
             
             int srcId = cameraColorId;
             int dstId = cameraColorId;
-
             var descriptor = GetDefaultDescriptor();
+
+            //TODO: swap temp result
 
             if (enableDepthStripes)
             {
@@ -159,8 +160,8 @@ namespace OpenCS
             if (enableToneMapping) { buffer.ReleaseTemporaryRT(toneMappingResultId); }
             if (enableBloom) { buffer.ReleaseTemporaryRT(bloomResultId); }
             if (enableBlur) { buffer.ReleaseTemporaryRT(blurResultId); }
-            targetTexture = null;
 
+            targetTexture = null;
             context.ExecuteCommandBuffer(buffer);
             buffer.Clear();
         }

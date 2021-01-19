@@ -1,4 +1,4 @@
-﻿Shader "OpenCS/CustomRP/DirectionalWater"
+﻿Shader "CustomRP/Water/DirectionalWater"
 {
 	Properties
 	{
@@ -8,7 +8,6 @@
 		_Smoothness("Smoothness", Range(0, 1)) = 0.5
 		[Toggle(_RECEIVE_SHADOWS)] _ReceiveShadows("Receive Shadows", Float) = 1
 
-		[Toggle(_NORMAL_MAP)] _NormalMapToggle("Normal Map", Float) = 0
 		[NoScaleOffset] _FlowMap ("Flow (RG, B Strength, A noise)", 2D) = "black" {}
 
 		[Header(Directional Flow)]
@@ -57,13 +56,12 @@
 
 			#pragma target 3.5
 			#pragma shader_feature _RECEIVE_SHADOWS
-			#pragma shader_feature _NORMAL_MAP
 			#pragma shader_feature _GERSTNER_WAVE
 
-			#pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
 			#pragma multi_compile _ _CASCADE_BLEND_SOFT _CASCADE_BLEND_DITHER
-			//#pragma multi_compile _ _LIGHTS_PER_OBJECT
-			//#pragma multi_compile _ _OTHER_PCF3 _OTHER_PCF5 _OTHER_PCF7
+			#pragma multi_compile _ _DIRECTIONAL_PCF3 _DIRECTIONAL_PCF5 _DIRECTIONAL_PCF7
+			#pragma multi_compile _ _OTHER_PCF3 _OTHER_PCF5 _OTHER_PCF7
+			#pragma multi_compile _ _LIGHTS_PER_OBJECT
 
 			#define _PREMULTIPLY_ALPHA
 

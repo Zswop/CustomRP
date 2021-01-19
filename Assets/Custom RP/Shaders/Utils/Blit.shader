@@ -69,12 +69,12 @@
 			#pragma vertex vert
 			#pragma fragment frag
 
-            TEXTURE2D(_BlitTex);
+            TEXTURE2D_FLOAT(_BlitTex);
             SAMPLER(sampler_BlitTex);
 
-            half4 frag(Varyings input) : SV_TARGET {
-               half4 col = SAMPLE_TEXTURE2D(_BlitTex, sampler_BlitTex, input.uv);
-               return col;
+            float frag(Varyings input) : SV_DEPTH  {
+               float depth = SAMPLE_DEPTH_TEXTURE(_BlitTex, sampler_BlitTex, input.uv);
+               return depth;
             }
 			ENDHLSL
         }

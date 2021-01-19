@@ -68,6 +68,35 @@ namespace OpenCS
         {
             shadows.Cleanup();
         }
+        
+        int GetMainLightIndex(NativeArray<VisibleLight> visibleLights)
+        {
+            int totalVisibleLights = visibleLights.Length;
+
+            if (totalVisibleLights == 0)
+                return -1;
+            
+            int brightestDirectionalLightIndex = -1;
+            float brightestLightIntensity = 0.0f;
+            for (int i = 0; i < totalVisibleLights; ++i)
+            {
+                VisibleLight currVisibleLight = visibleLights[i];
+                Light currLight = currVisibleLight.light;
+
+                if (currLight == null)
+                    break;
+
+                // In case no shadow light is present we will return the brightest directional light
+                if (currVisibleLight.lightType == LightType.Directional &&
+                        currLight.intensity > brightestLightIntensity)
+                {
+                    brightestLightIntensity = currLight.intensity;
+                    brightestDirectionalLightIndex = i;
+                }
+            }
+
+            return brightestDirectionalLightIndex;
+        }
 
         void SetupLights(bool useLightsPerObject)
         {
@@ -77,37 +106,57 @@ namespace OpenCS
 
             int i = 0;
             int dirLightCount = 0, otherLightCount = 0;
+            int mainLightIndex = GetMainLightIndex(visibleLights);
+            if (mainLightIndex != -1)
+            {
+                VisibleLight visibleLight = visibleLights[mainLightIndex];
+                SetupDirectionalLight(dirLightCount++, i, ref visibleLight);
+            }
             for (i = 0; i < visibleLights.Length; i++)
             {
                 int newIndex = -1;
-                VisibleLight visibleLight = visibleLights[i];
-                switch (visibleLight.lightType)
+
+                if (i != mainLightIndex)
                 {
-                    case LightType.Directional:
-                        if (dirLightCount < maxDirLightCount){
-                            SetupDirectionalLight(dirLightCount++, i, ref visibleLight);
-                        }
-                        break;
-                    case LightType.Point:
-                        if (otherLightCount < maxOtherLightCount){
-                            newIndex = otherLightCount;
-                            SetupPointLight(otherLightCount++, i, ref visibleLight);
-                        }
-                        break;
-                    case LightType.Spot:
-                        if (otherLightCount < maxOtherLightCount){
-                            newIndex = otherLightCount;
-                            SetupSpotLight(otherLightCount++, i, ref visibleLight);
-                        }
-                        break;
-                    default: break;
+                    VisibleLight visibleLight = visibleLights[i];
+                    switch (visibleLight.lightType)
+                    {
+                        case LightType.Directional:
+                            if (dirLightCount < maxDirLightCount)
+                            {
+                                SetupDirectionalLight(dirLightCount++, i, ref visibleLight);
+                            }
+                            break;
+                        case LightType.Point:
+                            if (otherLightCount < maxOtherLightCount)
+                            {
+                                newIndex = otherLightCount;
+                                SetupPointLight(otherLightCount++, i, ref visibleLight);
+                            }
+                            break;
+                        case LightType.Spot:
+                            if (otherLightCount < maxOtherLightCount)
+                            {
+                                newIndex = otherLightCount;
+                                SetupSpotLight(otherLightCount++, i, ref visibleLight);
+                            }
+                            break;
+                        default: break;
+                    }
                 }
 
-                if (useLightsPerObject) { indexMap[i] = newIndex; }
+                if (useLightsPerObject)
+                { 
+                    indexMap[i] = newIndex; 
+                }
             }
 
-            if (useLightsPerObject){
-                for (; i < indexMap.Length; ++i) { indexMap[i] = -1; }
+            if (useLightsPerObject)
+            {
+                for (; i < indexMap.Length; ++i) 
+                { 
+                    indexMap[i] = -1;
+                }
                 cullingResults.SetLightIndexMap(indexMap);
                 indexMap.Dispose();
             }
@@ -115,9 +164,20 @@ namespace OpenCS
             if (useLightsPerObject) { Shader.EnableKeyword(lightsPerObjectKeyword); }
             else { Shader.DisableKeyword(lightsPerObjectKeyword); }
 
-            buffer.SetGlobalInt(dirLightCountId, dirLightCount);
+            // Main Light is always a directional light, put in slot 0.
             if (dirLightCount > 0)
             {
+                buffer.SetGlobalInt(dirLightCountId, dirLightCount);
+                buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
+                buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
+                buffer.SetGlobalVectorArray(dirLightShadowDataId, dirLightShadowData);
+            }
+            else
+            {
+                dirLightColors[0] = Color.black;
+                dirLightDirections[0] = new Vector4(0, 0, 1, 0);
+                dirLightShadowData[0] = new Vector4(0, 0, 0, -1);
+                buffer.SetGlobalInt(dirLightCountId, 1);
                 buffer.SetGlobalVectorArray(dirLightColorsId, dirLightColors);
                 buffer.SetGlobalVectorArray(dirLightDirectionsId, dirLightDirections);
                 buffer.SetGlobalVectorArray(dirLightShadowDataId, dirLightShadowData);
@@ -138,8 +198,7 @@ namespace OpenCS
         {
             dirLightColors[index] = visibleLight.finalColor;
             dirLightDirections[index] = -visibleLight.localToWorldMatrix.GetColumn(2);
-            dirLightShadowData[index] =
-                shadows.ReserveDirectionalShadows(visibleLight.light, visibleIndex);
+            dirLightShadowData[index] = shadows.ReserveDirectionalShadows(visibleLight.light, visibleIndex);
         }
 
         void SetupPointLight(int index, int visibleIndex, ref VisibleLight visibleLight)

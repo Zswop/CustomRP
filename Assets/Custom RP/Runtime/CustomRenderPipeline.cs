@@ -66,7 +66,7 @@ namespace OpenCS
             float maxShadowDistance = Mathf.Min(settings.shadows.maxDistance, camera.farClipPlane);
             cameraData.maxShadowDistance = maxShadowDistance >= camera.nearClipPlane ? maxShadowDistance : 0.0f;
 
-            var additinalCameraData = camera.gameObject.GetComponent<CustomAdditinalCameraData>();
+            var additinalCameraData = camera.gameObject.GetComponent<CustomAdditionalCameraData>();
             if (additinalCameraData != null)
             {
                 cameraData.postProcessEnabled = additinalCameraData.postProcessing;
@@ -78,10 +78,12 @@ namespace OpenCS
             }
             else
             {
+                //SceneView Camera setting
                 cameraData.postProcessEnabled = false;
                 cameraData.requireOpaqueTexture = settings.requireOpaqueTexture;
                 cameraData.requireOpaqueTexture = settings.requireDepthTexture;
                 cameraData.renderingLayerMask = -1;
+                //cameraData.maxShadowDistance = 0.0f;
             }
 
             cameraData.postProcessEnabled &= SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
@@ -95,6 +97,8 @@ namespace OpenCS
             bool needsAlphaChannel = Graphics.preserveFramebufferAlpha;
             cameraData.cameraTargetDescriptor = RenderingUtils.CreateRenderTextureDescriptor(camera, cameraData.renderScale, 
                 cameraData.isHdrEnabled, msaaSamples, needsAlphaChannel);
+
+            cameraData.SetViewAndProjectionMatrix(camera.worldToCameraMatrix, camera.projectionMatrix);
         }
 
         private void InitializeRenderingData(ref CameraData cameraData, out RenderingData renderingData)

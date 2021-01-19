@@ -12,15 +12,12 @@ struct Attributes {
 
 struct Varyings {
 	float4 positionCS : SV_POSITION;
-
-	float2 baseUV : VAR_BASE_UV;
+	float4 baseUV : VAR_BASE_UV;
 
 	float3 positionWS : VAR_POSITION;
 	float3 normalWS : VAR_NORMAL;
-#if defined(_NORMAL_MAP)
-	float3 tangentWS : VAR_TANGENT;
-	float3 bitangentWS : VAR_BITANGENT;
-#endif
+	float4 tangentWS : VAR_TANGENT;
+
 	float4 screenPos : VAR_SCREEN_POS;
 };
 
@@ -28,13 +25,13 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
     ZERO_INITIALIZE(InputData, inputData)
 
 	inputData.positionWS = input.positionWS;
-#if defined(_NORMAL_MAP)
+
+	inputData.tangentWS = input.tangentWS.xyz;
+	half sign = input.tangentWS.w * GetOddNegativeScale();
+	half3 bitangentWS = cross(input.normalWS.xyz, input.tangentWS.xyz) * sign;
 	inputData.normalWS = TransformTangentToWorld(normalTS,
-		half3x3(input.tangentWS.xyz, input.bitangentWS.xyz, input.normalWS.xyz));
-#else
-	inputData.normalWS = normalize(input.normalWS);
-#endif
-	
+		half3x3(input.tangentWS.xyz, bitangentWS.xyz, input.normalWS.xyz));
+
     inputData.interpolatedNormalWS = input.normalWS;
 	inputData.viewDirectionWS = normalize(_WorldSpaceCameraPos - input.positionWS);
 	inputData.depthVS = -TransformWorldToView(input.positionWS).z;
@@ -48,25 +45,21 @@ Varyings WaterPassVertex(Attributes input) {
 #if defined(_GERSTNER_WAVE)
 	WaveData waveData;
 	InitializeWaterWaveData(input.positionOS, waveData);
+
 	output.positionWS = TransformObjectToWorld(waveData.position);
-	output.positionCS = TransformWorldToHClip(output.positionWS);	
+	output.positionCS = TransformWorldToHClip(output.positionWS);
 	
 	float3 normalOS = normalize(cross(waveData.bitangent, waveData.tangent));
 	output.normalWS = TransformObjectToWorldNormal(normalOS);
-	#if defined(_NORMAL_MAP)
-		float sign = input.tangentOS.w * GetOddNegativeScale();
-		output.tangentWS = TransformObjectToWorldDir(waveData.tangent);
-		output.bitangentWS = cross(output.normalWS, output.tangentWS) * sign;
-	#endif
+	float3 tangentWS = TransformObjectToWorldDir(waveData.tangent.xyz);
+	output.tangentWS = float4(tangentWS, input.tangentOS.w);
 #else
 	output.positionWS = TransformObjectToWorld(input.positionOS);
 	output.positionCS = TransformWorldToHClip(output.positionWS);
+
 	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
-	#if defined(_NORMAL_MAP)
-		float sign = input.tangentOS.w * GetOddNegativeScale();
-		output.tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
-		output.bitangentWS = cross(output.normalWS, output.tangentWS) * sign;
-	#endif
+	float3 tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
+	output.tangentWS = float4(tangentWS, input.tangentOS.w);
 #endif
 
 	output.screenPos = ComputeScreenPos(output.positionCS);

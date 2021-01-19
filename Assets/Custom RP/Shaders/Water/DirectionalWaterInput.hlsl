@@ -10,13 +10,13 @@ TEXTURE2D(_CameraOpaqueTexture);SAMPLER(sampler_CameraOpaqueTexture);
 
 CBUFFER_START(UnityPerMaterial)
 	float4 _BaseMap_ST;
-	float4 _BaseColor;
-	float _Metallic;
-	float _Smoothness;
+	half4 _BaseColor;
+	half _Metallic;
+	half _Smoothness;
 
-	float3 _WaterFogColor;
-	float _WaterFogDensity;
-	float _RefractionStrength;
+	half3 _WaterFogColor;
+	half _WaterFogDensity;
+	half _RefractionStrength;
 
 	float _Tiling;
 	float _TilingModulated;
@@ -27,19 +27,20 @@ CBUFFER_START(UnityPerMaterial)
 	float _HeightScaleModulated;
 
 	float4 _WaveA;
-	float4 _WaveB;                         
+	float4 _WaveB;
 	float4 _WaveC;
 CBUFFER_END
 
-float2 TransformBaseUV(float2 baseUV) {
-	return baseUV * _BaseMap_ST.xy + _BaseMap_ST.zw;
+float4 TransformBaseUV(float2 baseUV) {
+	float2 uv = baseUV.xy * _BaseMap_ST.xy + _BaseMap_ST.zw;
+	return float4(uv, 0.0, 0.0);
 }
 
-float4 GetBase(float2 baseUV) {
+half4 GetBase(float4 baseUV) {
 	return _BaseColor;
 }
 
-float GetCutoff(float2 baseUV) {
+float GetCutoff(float4 baseUV) {
 	return 0.0;
 }
 
@@ -88,20 +89,18 @@ float3 FlowGrid (float2 uv, float time) {
 	return dh;
 }
 
-inline void InitializeWaterSurfaceData(float2 uv, out SurfaceData surfaceData) {
+inline void InitializeWaterSurfaceData(float4 uv, out SurfaceData surfaceData) {
 	ZERO_INITIALIZE(SurfaceData, surfaceData)
 
 	float time = _Time.y * _Speed;
-	float3 dh = FlowGrid(uv, time);
+	float3 dh = FlowGrid(uv.xy, time);
 	float3 normal = normalize(float3(-(dh.xy), 1));	
 
 	half4 base = dh.z * dh.z * _BaseColor;
 	surfaceData.albedo = base.rgb;
 	surfaceData.alpha = base.a;
-
 	surfaceData.normalTS = normal;
 
-	surfaceData.cutoff = 0.0;
 	surfaceData.metallic = _Metallic;
 	surfaceData.smoothness = _Smoothness;
 	surfaceData.occlusion = 1.0;

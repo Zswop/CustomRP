@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.1802837, g: 0.22571404, b: 0.30692273, a: 1}
+  m_IndirectSpecularColor: {r: 0.18028378, g: 0.22571412, b: 0.30692285, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2353,7 +2353,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
   material: {fileID: 2100000, guid: 9ce407b9b7d2c47128e7fe8386a3b5ab, type: 2}
-  lightProbeVolume: {fileID: 0}
 --- !u!4 &331147507
 Transform:
   m_ObjectHideFlags: 0
@@ -4291,7 +4290,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: NaN, w: 1}
+  m_BoundingSphereOverride: {x: 0, y: 7.399e-42, z: 0, w: 9.058567e-10}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
@@ -6483,6 +6482,7 @@ GameObject:
   - component: {fileID: 963194228}
   - component: {fileID: 963194227}
   - component: {fileID: 963194226}
+  - component: {fileID: 963194229}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -6555,6 +6555,23 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &963194229
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 963194225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6adf1e1c6ee730f498c8a086120053f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  postProcessing: 0
+  renderingLayerMask: -1
+  requireDepthTexture: 0
+  requireOpaqueTexture: 0
+  renderShadows: 1
 --- !u!1 &977074005
 GameObject:
   m_ObjectHideFlags: 0
@@ -9214,6 +9231,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1503413614}
   - component: {fileID: 1503413613}
+  - component: {fileID: 1503413612}
   m_Layer: 0
   m_Name: Top View Camera
   m_TagString: Untagged
@@ -9221,6 +9239,23 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 0
+--- !u!114 &1503413612
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1503413611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6adf1e1c6ee730f498c8a086120053f4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  postProcessing: 0
+  renderingLayerMask: -1
+  requireDepthTexture: 0
+  requireOpaqueTexture: 0
+  renderShadows: 0
 --- !u!20 &1503413613
 Camera:
   m_ObjectHideFlags: 0

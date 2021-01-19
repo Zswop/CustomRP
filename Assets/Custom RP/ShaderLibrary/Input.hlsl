@@ -1,6 +1,4 @@
 #ifndef CUSTOM_INPUT_INCLUDED
 #define CUSTOM_INPUT_INCLUDED
 
-
-
 #endif

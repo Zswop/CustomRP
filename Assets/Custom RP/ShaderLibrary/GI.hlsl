@@ -58,8 +58,7 @@ float3 SampleEnvironment(float3 viewDirectionWS, float3 normalWS, float perceptu
 	float3 uvw = reflect(-viewDirectionWS, normalWS);
 	float mip = PerceptualRoughnessToMipmapLevel(perceptualRoughness);
 	float4 environment = SAMPLE_TEXTURECUBE_LOD(
-		unity_SpecCube0, samplerunity_SpecCube0, uvw, mip
-		);
+		unity_SpecCube0, samplerunity_SpecCube0, uvw, mip);
 	return DecodeHDREnvironment(environment, unity_SpecCube0_HDR);
 }
 
@@ -70,8 +69,7 @@ float3 SampleGI(float2 lightmapUV, float3 normalWS) {
 float4 SampleBakedShadows(float2 lightMapUV) {
 	#if defined(LIGHTMAP_ON)
 		return SAMPLE_TEXTURE2D(
-			unity_ShadowMask, samplerunity_ShadowMask, lightMapUV
-		);
+			unity_ShadowMask, samplerunity_ShadowMask, lightMapUV);
 	#else
 		return unity_ProbesOcclusion;
 	#endif

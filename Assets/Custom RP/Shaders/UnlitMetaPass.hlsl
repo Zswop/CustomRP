@@ -13,7 +13,7 @@ struct Attributes {
 
 struct Varyings {
 	float4 positionCS : SV_POSITION;
-	float2 baseUV : VAR_BASE_UV;
+	float4 baseUV : VAR_BASE_UV;
 };
 
 Varyings MetaPassVertex(Attributes input) {
