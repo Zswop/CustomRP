@@ -9,6 +9,8 @@ Shader "Hidden/CustomRP/PostFXStack"
 		HLSLINCLUDE
 			#include "../../ShaderLibrary/Common.hlsl"
 			#include "../../ShaderLibrary/Sampling.hlsl"
+
+			#include "Common.hlsl"
 			#include "PostFXStackPasses.hlsl"
 		ENDHLSL
 
@@ -61,6 +63,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomPrefilterPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 		
@@ -72,6 +75,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomHorizontalPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 
@@ -83,6 +87,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomVerticalPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 
@@ -94,6 +99,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomScatterPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 
@@ -105,6 +111,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomAddPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 
@@ -116,6 +123,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment BloomScatterFinalPassFragment
+			#include "Bloom.hlsl"
 			ENDHLSL
 		}
 
@@ -138,6 +146,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment ColorGradingPassFragment
+			#include "ColorGrading.hlsl"
 			ENDHLSL
 		}
 
@@ -147,8 +156,10 @@ Shader "Hidden/CustomRP/PostFXStack"
 
 			HLSLPROGRAM
 			#pragma target 3.5
+			#define _TONEMAP_ACES
 			#pragma vertex DefaultPassVertex
 			#pragma fragment ColorGradedACESPassFragment
+			#include "ColorGrading.hlsl"
 			ENDHLSL
 		}
 
@@ -158,30 +169,10 @@ Shader "Hidden/CustomRP/PostFXStack"
 
 			HLSLPROGRAM
 			#pragma target 3.5
+			#define _TONEMAP_NEUTRAL
 			#pragma vertex DefaultPassVertex
 			#pragma fragment ColorGradedNeutralPassFragment
-			ENDHLSL
-		}
-
-		Pass
-		{
-			Name "ColorGraded Final"
-
-			HLSLPROGRAM
-			#pragma target 3.5
-			#pragma vertex DefaultPassVertex
-			#pragma fragment ColorGradingFinalPassFragment
-			ENDHLSL
-		}
-
-		Pass
-		{
-			Name "FXAA Luminance"
-
-			HLSLPROGRAM
-			#pragma target 3.5
-			#pragma vertex DefaultPassVertex
-			#pragma fragment FXAALuminancePassFragment
+			#include "ColorGrading.hlsl"
 			ENDHLSL
 		}
 
@@ -193,6 +184,7 @@ Shader "Hidden/CustomRP/PostFXStack"
 			#pragma target 3.5
 			#pragma vertex DefaultPassVertex
 			#pragma fragment FXAAPassFragment
+			#include "FXAA.hlsl"
 			ENDHLSL
 		}
 	}

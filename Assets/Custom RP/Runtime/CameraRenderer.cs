@@ -57,13 +57,12 @@ namespace OpenCS
             ExecuteBuffer();
             lighting.Setup(context, ref cullingResults, ref renderingData);
             postFXStack.Setup(ref cameraData, renderingData.postFXSettings,
-                renderingData.colorLUTResolution);
+                colorGradingLUTId, renderingData.colorLUTResolution);
             buffer.EndSample(SampleName);
 
             SetupCameraProperties(camera);
             SetupColorGradingLut(context, ref renderingData);
             SetupDepthPrepare(context, ref cullingResults, ref renderingData);
-            //buffer.EndSample(SampleName);
 
             Setup(ref renderingData);
             DrawVisibleGeometry(ref renderingData);
@@ -181,14 +180,14 @@ namespace OpenCS
             buffer.Clear();
         }
        
-        void DrawVisibleGeometry(ref RenderingData renderingDta)
+        void DrawVisibleGeometry(ref RenderingData renderingData)
         {
-            ref CameraData cameraData = ref renderingDta.cameraData;
+            ref CameraData cameraData = ref renderingData.cameraData;
             var filteringSettings = new FilteringSettings(RenderQueueRange.opaque,
                 renderingLayerMask : (uint)cameraData.renderingLayerMask
             );
             DrawingSettings drawingSettings = RenderingUtils.CreateDrawingSettings(unlitShaderTagId,
-                SortingCriteria.CommonOpaque, ref renderingDta);
+                SortingCriteria.CommonOpaque, ref renderingData);
             drawingSettings.SetShaderPassName(1, litShaderTagId);
             context.DrawRenderers(cullingResults, ref drawingSettings, ref filteringSettings);
 

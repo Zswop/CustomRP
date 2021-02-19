@@ -37,6 +37,9 @@ namespace OpenCS
         public bool useLightsPerObject = true;
 
         [SerializeField]
+        public bool supportShadows = true;
+
+        [SerializeField]
         public ShadowSettings shadows = default;
 
         [SerializeField]

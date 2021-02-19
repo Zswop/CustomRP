@@ -43,17 +43,17 @@ half GetCutoff(float4 baseUV) {
 
 half3 GetNormalTS(float4 baseUV) {
 	half scale = INPUT_PROP(_NormalScale);
-	return SampleNormal(baseUV.xy, _NormalMap, sampler_BaseMap, scale);
+	return SampleNormal(baseUV.xy, TEXTURE2D_ARGS(_NormalMap, sampler_BaseMap), scale);
 }
 
 half4 GetMODS(float4 baseUV) {
 	half4 mods = half4(INPUT_PROP(_Metallic), INPUT_PROP(_Occlusion), 1.0, INPUT_PROP(_Smoothness));
-	return SampleMODSMask(baseUV.xy, _MaskMap, sampler_BaseMap, mods);
+	return SampleMODSMask(baseUV.xy, TEXTURE2D_ARGS(_MaskMap, sampler_BaseMap), mods);
 }
 
 half3 GetEmission(float4 baseUV) {
 	half4 color = INPUT_PROP(_EmissionColor);
-	return SampleEmission(baseUV.xy, color.rgb, _EmissionMap, sampler_BaseMap);
+	return SampleEmission(baseUV.xy, color.rgb, TEXTURE2D_ARGS(_EmissionMap, sampler_BaseMap));
 }
 
 half GetFresnel(float4 baseUV) {

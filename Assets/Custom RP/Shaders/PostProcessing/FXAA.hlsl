@@ -19,9 +19,14 @@ float4 _ContrastThreshold;
 #define RELATIVE_THRESH _ContrastThreshold.y
 #define SUBPIEXL_BLENDING _ContrastThreshold.z
 
-//#define FXAA_SAMPLE_LUMINANCE(uv)
-//#define FXAA_SAMPLE_SOURCE(uv)
-//#define FXAA_SOURCE_SIZE
+half GetLuminance(float2 uv) {
+	half4 color = GetSource(uv);
+	return Luminance(color.rgb);
+}
+
+#define FXAA_SAMPLE_LUMINANCE(uv) GetLuminance(uv)
+#define FXAA_SAMPLE_SOURCE(uv) GetSource(uv)
+#define FXAA_SOURCE_SIZE GetSourceTexelSize()
 
 struct LuminanceData {
 	float m, n, e, s, w;
@@ -170,26 +175,31 @@ float DetermineEdgeBlendFactor (LuminanceData l, EdgeData e, float2 uv) {
 }
 
 half4 ApplyFXAA(float2 uv) {
+	float2 dstUV = uv;
 	LuminanceData l = SampleLuminanceNeighborhood(uv);
-	if (ShouldSkipPixel(l)) {
-		//return half4(0, 0, 0, 0);
-		return FXAA_SAMPLE_SOURCE(uv);
+	if (!ShouldSkipPixel(l)) {
+		//return l.contrast;
+
+		float pixelBlend = DeterminePixelBlendFactor(l);
+		//return blend;
+
+		EdgeData e = DetermineEdge(l);
+		//return e.isHorizontal ? float4(1, 0, 0, 0) : 1;
+		//if (e.isHorizontal){ return e.step.y < 0 ? float4(1, 0, 0, 0) : 1;}
+		//else { return e.step.x < 0 ? float4(1, 0, 0, 0) : 1; }
+
+		float edgeBlend = DetermineEdgeBlendFactor(l, e, uv);
+		//return edgeBlend - pixelBlend;
+
+		float finalBlend = max(pixelBlend, edgeBlend);
+		dstUV = uv + e.step * finalBlend;
 	}
-	//return l.contrast;
+	half4 color = FXAA_SAMPLE_SOURCE(dstUV);
+	return color;
+}
 
-	float pixelBlend = DeterminePixelBlendFactor(l);
-	//return blend;
-
-	EdgeData e = DetermineEdge(l);
-	//return e.isHorizontal ? float4(1, 0, 0, 0) : 1;
-	//if (e.isHorizontal){ return e.step.y < 0 ? float4(1, 0, 0, 0) : 1;}
-	//else { return e.step.x < 0 ? float4(1, 0, 0, 0) : 1; }
-
-	float edgeBlend = DetermineEdgeBlendFactor(l, e, uv);
-	//return edgeBlend - pixelBlend;
-
-	float finalBlend = max(pixelBlend, edgeBlend);
-	half4 color = FXAA_SAMPLE_SOURCE(uv + e.step * finalBlend);
+half4 FXAAPassFragment(Varyings input) : SV_TARGET {
+	half4 color = ApplyFXAA(input.fxUV);
 	return color;
 }
 

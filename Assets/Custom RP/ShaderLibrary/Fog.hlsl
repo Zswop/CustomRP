@@ -64,7 +64,7 @@ half3 ApplyDistanceHeightMieFog(half3 fragColor, half3 fogCoord) {
 	half3 distanceFogColor = lerp(fragColor.rgb, _DistanceFogColor.rgb, fogCoord.x);
 	//return distanceFogColor;
 
-	half3 heightFogColor = lerp(fragColor.rgb, _HeightFogColor, fogCoord.y);
+	half3 heightFogColor = lerp(fragColor.rgb, _HeightFogColor.rgb, fogCoord.y);
 	//return heightFogColor;
 
 	return lerp(distanceFogColor, heightFogColor, fogCoord.y);

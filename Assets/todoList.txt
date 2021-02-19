@@ -1,6 +1,0 @@
-﻿1. subsurface scatering(sss)
-2. volumetric clouds
-3. grass ocean
-4. weather system
-5. planar reflection, screen space reflection(SSR)
-6. post processing package

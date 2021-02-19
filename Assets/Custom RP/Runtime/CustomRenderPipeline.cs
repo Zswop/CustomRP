@@ -8,8 +8,9 @@ namespace OpenCS
 {
     public partial class CustomRenderPipeline : RenderPipeline
     {
+        private bool support32BitHDR = true;
         private CameraRenderer renderer = new CameraRenderer();
-
+        
         public static CustomRenderPipelineAsset asset
         {
             get => GraphicsSettings.currentRenderPipeline as CustomRenderPipelineAsset;
@@ -20,6 +21,8 @@ namespace OpenCS
             GraphicsSettings.useScriptableRenderPipelineBatching = asset.useSRPBatcher;
             GraphicsSettings.lightsUseLinearIntensity = true;
 
+            // SYSTEMINFO APIS TAKE ENUM PARAMETER CREATE GC.ALLOC due to boxing
+            support32BitHDR = SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGB111110Float);
             Shader.globalRenderPipeline = "CustomPipeline";
 
             InitializeForEditor();
@@ -62,9 +65,10 @@ namespace OpenCS
             cameraData.requireOpaqueTexture = settings.requireOpaqueTexture;
             cameraData.requireDepthTexture = settings.requireDepthTexture;
             cameraData.renderScale = settings.renderScale;
-            
+
+            bool shadowEnabled = settings.supportShadows;
             float maxShadowDistance = Mathf.Min(settings.shadows.maxDistance, camera.farClipPlane);
-            cameraData.maxShadowDistance = maxShadowDistance >= camera.nearClipPlane ? maxShadowDistance : 0.0f;
+            cameraData.maxShadowDistance = (shadowEnabled && maxShadowDistance >= camera.nearClipPlane) ? maxShadowDistance : 0.0f;
 
             var additinalCameraData = camera.gameObject.GetComponent<CustomAdditionalCameraData>();
             if (additinalCameraData != null)
@@ -78,12 +82,10 @@ namespace OpenCS
             }
             else
             {
-                //SceneView Camera setting
                 cameraData.postProcessEnabled = false;
                 cameraData.requireOpaqueTexture = settings.requireOpaqueTexture;
                 cameraData.requireOpaqueTexture = settings.requireDepthTexture;
                 cameraData.renderingLayerMask = -1;
-                //cameraData.maxShadowDistance = 0.0f;
             }
 
             cameraData.postProcessEnabled &= SystemInfo.graphicsDeviceType != GraphicsDeviceType.OpenGLES2;
@@ -94,7 +96,7 @@ namespace OpenCS
             if (camera.allowMSAA && msaaSettingSamples > 1) {
                 msaaSamples = camera.targetTexture != null ? camera.targetTexture.antiAliasing : msaaSettingSamples;
             }
-            bool needsAlphaChannel = Graphics.preserveFramebufferAlpha;
+            bool needsAlphaChannel = Graphics.preserveFramebufferAlpha || !support32BitHDR;
             cameraData.cameraTargetDescriptor = RenderingUtils.CreateRenderTextureDescriptor(camera, cameraData.renderScale, 
                 cameraData.isHdrEnabled, msaaSamples, needsAlphaChannel);
 

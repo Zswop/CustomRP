@@ -13,17 +13,18 @@ MonoBehaviour:
   m_Name: CutomPostFXSettings
   m_EditorClassIdentifier: 
   shader: {fileID: 4800000, guid: 26750034c2caadc4daa09e15949c12a1, type: 3}
+  uberPost: {fileID: 4800000, guid: 40760c03b63fce1408425a0c33ee2b2d, type: 3}
   DepthStripes: 0
   blur:
     maxIterations: 0
+    raidus: 0.5
   bloom:
-    maxIterations: 0
-    downscaleLimit: 2
+    diffusion: 3
     threshold: 1
-    thresholdKnee: 0.5
-    intensity: 0.2
+    thresholdKnee: 0.157
+    intensity: 0
     mode: 0
-    scatter: 0.7
+    scatter: 0.778
   colorAdjustments:
     postExposure: 0
     contrast: 50
@@ -51,8 +52,21 @@ MonoBehaviour:
     highLightsEnd: 1
   tonemapping:
     mode: 2
+  vignette:
+    color: {r: 0, g: 0, b: 0, a: 1}
+    center: {x: 0.5, y: 0.5}
+    intensity: 0
+    smoothness: 1
+    rounded: 0
   fxaa:
-    luminanceSource: 0
+    luminanceSource: 1
     contrastThreshold: 0.0312
     relativeThreshold: 0.063
     subpixelBlending: 0.645
+  dofShader: {fileID: 4800000, guid: 2a12583e4eee0244a9e9a25131e3fde4, type: 3}
+  depthOfField:
+    enbable: 0
+    focusDistance: 6.92
+    aperture: 5.6
+    focalLength: 166
+    maxRadius: 10

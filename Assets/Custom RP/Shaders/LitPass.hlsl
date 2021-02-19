@@ -36,8 +36,8 @@ void InitializeInputData(Varyings input, half3 normalTS, out InputData inputData
 
 #if defined(_NORMAL_MAP)
 	inputData.tangentWS = input.tangentWS.xyz;
-	half sign = input.tangentWS.w * GetOddNegativeScale();
-	half3 bitangentWS = cross(input.normalWS.xyz, input.tangentWS.xyz) * sign;
+	float sign = input.tangentWS.w;		// should be either +1 or -1
+	float3 bitangentWS = cross(input.normalWS.xyz, input.tangentWS.xyz) * sign;
 	inputData.normalWS = TransformTangentToWorld(normalTS,
 		half3x3(input.tangentWS.xyz, bitangentWS.xyz, input.normalWS.xyz));
 #else
@@ -64,8 +64,9 @@ Varyings LitPassVertex(Attributes input) {
 
 	output.normalWS = TransformObjectToWorldNormal(input.normalOS);
 #if defined(_NORMAL_MAP)
+	float sign = input.tangentOS.w * GetOddNegativeScale();
 	float3 tangentWS = TransformObjectToWorldDir(input.tangentOS.xyz);
-	output.tangentWS = float4(tangentWS, input.tangentOS.w);
+	output.tangentWS = float4(tangentWS, sign);
 #endif
 
 	TRANSFER_GI_DATA(input, output);

@@ -63,11 +63,10 @@ namespace OpenCS
             desc = new RenderTextureDescriptor(camera.pixelWidth, camera.pixelHeight);
             desc.width = (int)((float)desc.width * renderScale);
             desc.height = (int)((float)desc.height * renderScale);
-
-            UnityEngine.Profiling.Profiler.BeginSample("SupportsRenderTextureFormat");
-            bool use32BitHDR = !needsAlpha && SystemInfo.SupportsRenderTextureFormat(RenderTextureFormat.RGB111110Float);
-            UnityEngine.Profiling.Profiler.EndSample();
-            RenderTextureFormat hdrFormat = (use32BitHDR) ? RenderTextureFormat.RGB111110Float : RenderTextureFormat.DefaultHDR;
+            
+            bool use32BitHDR = !needsAlpha;
+            RenderTextureFormat hdrFormat = (use32BitHDR) ?
+                RenderTextureFormat.RGB111110Float : RenderTextureFormat.DefaultHDR;
             if (camera.targetTexture != null)
             {
                 desc.colorFormat = camera.targetTexture.descriptor.colorFormat;

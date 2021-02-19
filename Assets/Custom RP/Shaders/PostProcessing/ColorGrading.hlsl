@@ -14,6 +14,8 @@ float4 _SMHMidTones;
 float4 _SMHHighLights;
 float4 _SMHRange;
 
+float4 _ColorGradingLUTParameters;
+
 float GetLuminance(float3 color, bool useACES) {
 	if (useACES){ return AcesLuminance(color); }
 	else { return Luminance(color); }
@@ -30,11 +32,9 @@ float3 ColorGradeWhiteBalance (float3 color) {
 }
 
 float3 ColorGradingContrast (float3 color, bool useACES) {
-	if (useACES) {  color = ACES_to_ACEScc(unity_to_ACES(color)); }
-	else { color = LinearToLogC(color); }
+	color = useACES ? ACES_to_ACEScc(unity_to_ACES(color)) : LinearToLogC(color);
 	color = (color - ACEScc_MIDGRAY) * _ColorAdjustments.y + ACEScc_MIDGRAY;
-	if (useACES) { color = ACES_to_ACEScg(ACEScc_to_ACES(color)); }
-	else { color = LogCToLinear(color);}
+	color = useACES ? ACES_to_ACEScg(ACEScc_to_ACES(color)) : LogCToLinear(color);
 	return color;
 }
 
@@ -78,7 +78,10 @@ float3 ColorGradingShadowsMidtonesHighlights(float3 color, bool useACES) {
 		color * _SMHHighLights.rgb * highlightsWeight;
 }
 
-float3 ColorGrade (float3 color, bool useACES) {
+float3 ColorGrade (float3 colorLutSpace, bool useACES) {
+	//input color as being in Log C space
+    float3 color = LogCToLinear(colorLutSpace);
+
 	color = ColorGradePostExposure(color);
 	color = ColorGradeWhiteBalance(color);
 	color = ColorGradingContrast(color, useACES);
@@ -93,6 +96,28 @@ float3 ColorGrade (float3 color, bool useACES) {
 	color = ColorGradingSaturation(color, useACES);
 	color = max(color, 0.0);
 	return color;
+}
+
+float3 GetColorGradedLUT (float2 uv, bool useACES = false) {
+	float3 colorLutSpace = GetLutStripValue(uv, _ColorGradingLUTParameters);
+	return ColorGrade(colorLutSpace, useACES);
+}
+
+half4 ColorGradingPassFragment(Varyings input) : SV_TARGET {
+	half3 color = GetColorGradedLUT(input.fxUV);
+	return half4(color, 1.0);
+}
+
+half4 ColorGradedACESPassFragment(Varyings input) : SV_TARGET {
+	half3 color = GetColorGradedLUT(input.fxUV, true);
+	color = AcesTonemap(unity_to_ACES(color));
+	return half4(color, 1.0);
+}
+
+half4 ColorGradedNeutralPassFragment(Varyings input) : SV_TARGET {
+	half3 color = GetColorGradedLUT(input.fxUV, false);
+	color = NeutralTonemap(color);
+	return half4(color, 1.0);
 }
 
 #endif
